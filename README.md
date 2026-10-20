@@ -45,6 +45,8 @@ against the input: if anything other than whitespace changed, fall back to the i
 | [`docs/paragraphing-style.md`](docs/paragraphing-style.md) | The paragraphing rules derived from the hand reviews, and how well code reproduces them |
 | [`scripts/style_rules.py`](scripts/style_rules.py) | Rules 1–3 as code, plus a scorer against gold annotations. Applied to every `syn` proposal |
 | [`scripts/extrapolate.py`](scripts/extrapolate.py) | Cross-validated check of Haiku-with-rules against the code rules (it lost; result in the docstring) |
+| [`docs/training.md`](docs/training.md) | Training runs, base-model choice, commands |
+| [`training/`](training/) | `train.py` (Modal) and the built train/test splits |
 | [`project.json`](project.json) | Machine-readable project state |
 
 ## Deploying

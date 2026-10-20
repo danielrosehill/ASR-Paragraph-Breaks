@@ -7,6 +7,7 @@
   uv run scripts/generate_synthetic.py submit [--n 500] [--seed 1]   # batch; writes data/synthetic/batch-<seed>.json
   uv run scripts/generate_synthetic.py collect [--seed 1]            # waits, writes data/synthetic/synthetic-<seed>.jsonl
   uv run scripts/generate_synthetic.py run --n 30 --seed 2           # small sets: direct calls, same output file
+  uv run scripts/generate_synthetic.py run --n 300 --seed 3 --kinds email   # dictated emails only (EMAIL_KINDS)
 
 Seed 1 (2026-10-21, 500 items) used STYLES only. Later seeds also draw from STYLES_VARIED, added after
 the first reviews asked for more variation in style. Every spec records its `audience`
@@ -62,6 +63,22 @@ KINDS = [
     "a travel plan being thought through out loud",
     "a voice note to a friend catching up on news",
     "a dictated set of requirements for a freelancer",
+]
+# Seed 3 (2026-10-21): emails only, for the sibling Email-Key-Line-Bolding project. Every entry starts
+# "a dictated email to", which is how that repo's build_pool.py selects emails.
+EMAIL_KINDS = [
+    "a dictated email to a colleague",
+    "a dictated email to a landlord or property manager",
+    "a dictated email to a client about a project",
+    "a dictated email to a supplier or vendor about an order",
+    "a dictated email to a child's teacher or school office",
+    "a dictated email to a doctor's or dentist's office",
+    "a dictated email to an HR department or a manager",
+    "a dictated email to a contractor or tradesperson",
+    "a dictated email to a bank, insurer or utility company",
+    "a dictated email to a group of volunteers or a club",
+    "a dictated email to a freelancer with a brief",
+    "a dictated email to an event organiser or venue",
 ]
 TOPICS = [
     "moving apartment", "a home network and server setup", "a child's sleep schedule", "a tax filing deadline",
@@ -123,13 +140,14 @@ def api_key() -> str:
     ).stdout.strip()
 
 
-def specs(n: int, seed: int) -> list[dict]:
+def specs(n: int, seed: int, kinds: list[str] | None = None) -> list[dict]:
     rng = random.Random(seed)
     styles = STYLES if seed == 1 else STYLES + STYLES_VARIED
+    kinds = kinds or KINDS
     out = []
     for i in range(n):
         lo, hi = rng.choice(LENGTHS)
-        kind = rng.choice(KINDS)
+        kind = rng.choice(kinds)
         out.append({"id": f"syn-{seed}-{i:04d}", "kind": kind, "topic": rng.choice(TOPICS),
                     "words": [lo, hi], "style": rng.choice(styles), "audience": audience(kind)})
     return out
@@ -170,11 +188,11 @@ def collect(seed: int) -> None:
     write(seed, meta["specs"], results)
 
 
-def run(n: int, seed: int) -> None:
+def run(n: int, seed: int, kinds: list[str] | None = None) -> None:
     """Direct (non-batch) calls in parallel: for small sets where waiting on a batch isn't worth it."""
     from concurrent.futures import ThreadPoolExecutor
     client = anthropic.Anthropic(api_key=api_key())
-    ss = specs(n, seed)
+    ss = specs(n, seed, kinds)
     with ThreadPoolExecutor(8) as ex:
         msgs = list(ex.map(lambda s: client.messages.create(**params(s)), ss))
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -216,6 +234,6 @@ if __name__ == "__main__":
     elif cmd == "collect":
         collect(int(args.get("--seed", 1)))
     elif cmd == "run":
-        run(int(args.get("--n", 30)), int(args.get("--seed", 2)))
+        run(int(args.get("--n", 30)), int(args.get("--seed", 2)), EMAIL_KINDS if args.get("--kinds") == "email" else None)
     else:
         sys.exit(__doc__)

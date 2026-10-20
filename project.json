@@ -4,7 +4,7 @@
   "title": "Add paragraph breaks to flat ASR text, changing nothing else",
   "created": "2026-10-21",
   "updated": "2026-10-21",
-  "status": "reviewing",
+  "status": "training",
   "task": {
     "pipeline_tag": "text-generation",
     "modality": "text",
@@ -55,5 +55,22 @@
     "n": 30,
     "reviewed": 26,
     "unchanged": 13
-  }
+  },
+  "runs": [
+    {
+      "run": "asr-paragraph-r2-gemma270m",
+      "base": "google/gemma-3-270m-it",
+      "gpu": "L4",
+      "date": "2026-10-21",
+      "train_seconds": 233,
+      "test": {
+        "precision": 0.84,
+        "recall": 0.724,
+        "f1": 0.778,
+        "fallback_rate": 0.077
+      },
+      "n_train": 505,
+      "n_test": 26
+    }
+  ]
 }
