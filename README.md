@@ -6,16 +6,17 @@ Speech-to-text output is punctuated and cased but arrives as one block, even fro
 sentence boundaries. This project hand-annotates where the paragraphs go and fine-tunes a small model on
 those annotations.
 
-**Status (2026-10-21): reviewing.** The main training source is 500 synthetic voice-memo transcripts,
-written and paragraphed by Claude Haiku 5.5 through the Message Batches API. Each one is reviewed and
-corrected by hand in the Space. Real ASR monologue (scrappier) stays in the pool, after the synthetic
-items, for annotation from scratch. No model yet.
+**Status (2026-10-21): first model released.** A Gemma 3 270M fine-tune (run r2) scores break F1 0.78
+on 26 held-out hand-reviewed memos, with 2 of 26 outputs falling back to the input. Published on the Hub
+with an ONNX export; weights archived in Wasabi (`small-models`). Training data: 500 synthetic memos
+from Claude Haiku 5.5, hand-reviewed where possible and otherwise labelled by rules derived from those
+reviews. Details: [`docs/training.md`](docs/training.md).
 
 | | |
 |---|---|
 | Dataset | [`danielrosehill/ASR-Paragraph-Breaks`](https://huggingface.co/datasets/danielrosehill/ASR-Paragraph-Breaks) |
 | Annotation Space | [`danielrosehill/ASR-Paragraph-Annotator`](https://huggingface.co/spaces/danielrosehill/ASR-Paragraph-Annotator) |
-| Model | not trained yet |
+| Model | [`danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks), ONNX: [`…-ONNX`](https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks-ONNX) |
 
 ## Why model-proposed, hand-reviewed pairs
 

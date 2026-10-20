@@ -44,6 +44,11 @@ person's preference: short paragraphs, a break at each change of subject.
 Field reference: [`docs/data-format.md`](https://github.com/danielrosehill/ASR-Paragraph-Breaks/blob/main/docs/data-format.md).
 Training pair: `text` → `paragraphed`.
 
+`training/r2/{train,test}.jsonl` is the exact split behind the published model
+[`danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks):
+505 training pairs (20 hand-reviewed, 485 rule-labelled, `label` field says which) and 26 held-out
+hand-reviewed test pairs. Rows are `{id, label, input, output}`.
+
 ## Sources
 
 | Key | Upstream | Licence | What |
