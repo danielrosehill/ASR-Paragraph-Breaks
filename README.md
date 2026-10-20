@@ -42,6 +42,8 @@ against the input: if anything other than whitespace changed, fall back to the i
 | [`space/`](space/) | The Gradio annotation Space (deployed to HF as-is) |
 | [`hf-dataset/README.md`](hf-dataset/README.md) | The dataset card, uploaded to the HF dataset repo |
 | [`docs/data-format.md`](docs/data-format.md) | Pool and annotation record schemas |
+| [`docs/paragraphing-style.md`](docs/paragraphing-style.md) | The paragraphing rules derived from the hand reviews, and how well code reproduces them |
+| [`scripts/style_rules.py`](scripts/style_rules.py) | Rules 1–3 as code, plus a scorer against gold annotations |
 | [`project.json`](project.json) | Machine-readable project state |
 
 ## Deploying
