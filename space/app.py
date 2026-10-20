@@ -64,6 +64,9 @@ def pick_next(skipped: list[str]) -> tuple[dict | None, str]:
         return None, progress
     # Review model proposals before annotating flat text from scratch; random order within each.
     review = [r for r in todo if r.get("proposed")]
+    if review:
+        top = max(r.get("priority", 0) for r in review)
+        review = [r for r in review if r.get("priority", 0) == top]
     return random.choice(review or todo), progress
 
 
@@ -111,6 +114,7 @@ def on_save(item_id, edited, skipped, profile: gr.OAuthProfile | None, oauth_tok
         "paragraphed": "\n\n".join(paras),
         "proposed": item.get("proposed"),
         "proposal_model": item.get("proposal_model"),
+        "proposal_method": item.get("proposal_method"),
         "edited": None if not item.get("proposed") else "\n\n".join(paras) != item["proposed"],
         "paragraphs": paras,
         "break_offsets": breaks,

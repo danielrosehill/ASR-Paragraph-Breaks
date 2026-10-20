@@ -17,16 +17,16 @@
     "baseline": "segment-any-text/sat-3l-sm with do_paragraph_segmentation=True"
   },
   "pool": {
-    "items": 1459,
+    "items": 1489,
     "by_source": {
-      "syn": 500,
+      "syn": 530,
       "mwp": 939,
       "svn": 15,
       "nvn": 5
     },
     "built": "2026-10-21"
   },
-  "annotations": 0,
+  "annotations": 20,
   "links": {
     "github": "https://github.com/danielrosehill/ASR-Paragraph-Breaks",
     "hf_dataset": "https://huggingface.co/datasets/danielrosehill/ASR-Paragraph-Breaks",
@@ -41,5 +41,16 @@
     "median_words": 349.5,
     "median_paragraphs": 6,
     "date": "2026-10-21"
+  },
+  "style_rules": {
+    "doc": "docs/paragraphing-style.md",
+    "f1_vs_gold": 0.84,
+    "gold_items": 19,
+    "llm_rules_f1_cv": 0.73
+  },
+  "golden_set": {
+    "ids": "syn-2-*",
+    "n": 30,
+    "status": "awaiting review"
   }
 }

@@ -18,22 +18,29 @@ almost all of the edits are at the edges and at signposts.
 3. **Each closing line stands alone.** Wrap-ups, afterthoughts and sign-offs are peeled off one per
    paragraph: "That's it.", "Oh, and she mentioned…", "Let me know by Friday.", "Thanks, Dana.",
    "Talk soon,", then the name, "Bye."
-4. **Messages addressed to a person split further.** Dictated emails and voice messages to someone
-   (`syn-1-0314`, `syn-1-0352`, `syn-1-0121`, `syn-1-0304`) go close to one sentence per paragraph through
-   the body. Memos to self keep multi-sentence body paragraphs: in `syn-1-0189` (a weekly plan),
-   only the opener and close changed.
+4. **Messages addressed to a person split somewhat further.** The two most letter-like messages
+   (`syn-1-0314`, `syn-1-0352`) went close to one sentence per paragraph through the body. Most other
+   messages did not, and memos to self keep multi-sentence body paragraphs: in `syn-1-0189` (a weekly
+   plan), only the opener and close changed. Overstating this rule made an LLM over-split (below).
 5. **Breaks are never removed,** so a proposal that is already correct is never over-split.
 
-## How well simple rules reproduce it
+## How well the rules reproduce it
 
-`scripts/style_rules.py` implements rules 1–3 as code on top of a proposal. Thresholds: a signpost is a
-first sentence of up to 11 words, and closing lines are up to 10 words. Scored on the same 19 items, as
-break-position precision/recall:
+`scripts/style_rules.py` implements rules 1–3 as code on top of a proposal, with an abbreviation guard
+so "Mr. Delgado" is not split. Thresholds: a signpost is a first sentence of up to 11 words, and closing
+lines are up to 10 words. Break-position precision/recall:
 
-| | Precision | Recall | F1 |
+| Method | Precision | Recall | F1 |
 |---|---|---|---|
 | Haiku proposal alone | 1.00 | 0.54 | 0.70 |
-| Proposal + rules 1–3 | 0.82 | 0.83 | 0.83 |
+| Proposal + code rules 1–3 | 0.83 | 0.84 | 0.84 |
+| Haiku 5.5 given rules 1–5 + gold examples (4-fold) | 0.59 | 0.95 | 0.73 |
 
-The two thresholds were fitted on these same 19 items, so 0.83 is optimistic. Most of the remaining
-recall gap is rule 4, which the code does not implement (it needs to know who the memo is addressed to).
+The code-rule thresholds were fitted on these same 19 items, so 0.84 is optimistic. The LLM figures are
+cross-validated (`scripts/extrapolate.py eval`). The two tie on notes to self; on memos to someone else
+the LLM over-splits (precision 0.50), following rule 4 too literally.
+
+**Decision (2026-10-21):** every `syn` proposal in the pool is Haiku's breaks plus the code rules
+(`proposal_method: "haiku-5.5 + style_rules v1"`). It costs nothing, is deterministic, and is the
+better of the two methods measured. Re-run both scores once the 30 style-varied golden items
+(`syn-2-*`) are reviewed.

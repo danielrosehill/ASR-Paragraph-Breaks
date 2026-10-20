@@ -4,8 +4,13 @@
 # ///
 """Generate synthetic, already-paragraphed voice-memo transcripts with Claude Haiku 5.5 (Message Batches).
 
-  uv run scripts/generate_synthetic.py submit [--n 500] [--seed 1]   # writes data/synthetic/batch.json
-  uv run scripts/generate_synthetic.py collect                       # waits, writes data/synthetic/synthetic.jsonl
+  uv run scripts/generate_synthetic.py submit [--n 500] [--seed 1]   # batch; writes data/synthetic/batch-<seed>.json
+  uv run scripts/generate_synthetic.py collect [--seed 1]            # waits, writes data/synthetic/synthetic-<seed>.jsonl
+  uv run scripts/generate_synthetic.py run --n 30 --seed 2           # small sets: direct calls, same output file
+
+Seed 1 (2026-10-21, 500 items) used STYLES only. Later seeds also draw from STYLES_VARIED, added after
+the first reviews asked for more variation in style. Every spec records its `audience`
+(self/other), which rule 4 of docs/paragraphing-style.md depends on.
 
 Each output is one memo with paragraphs separated by blank lines. The flat input is derived from it
 by joining the paragraphs, so the pair satisfies the only-whitespace-differs invariant by construction.
@@ -69,12 +74,31 @@ TOPICS = [
     "a pet's vet appointment", "an online course", "a bike repair", "a wedding", "a power outage",
     "a shared family calendar", "a lost parcel", "an electricity bill", "a research question", "a hiking trip",
 ]
+# Kinds whose recording is addressed to another person or organisation; everything else is a note to self.
+OTHER_MARKERS = ("email", "message", "for a team", "instructions for someone", "complaint", "to a friend",
+                 "for a freelancer", "prompt for an AI")
+
+
+def audience(kind: str) -> str:
+    return "other" if any(m in kind for m in OTHER_MARKERS) else "self"
+
+
 LENGTHS = [(150, 250), (250, 400), (400, 600)]
 STYLES = [
     "Calm and organised; the speaker has thought about it beforehand.",
     "Thinking out loud; the speaker occasionally backtracks or corrects themselves.",
     "Brisk and practical; short sentences.",
     "Warm and conversational.",
+]
+STYLES_VARIED = [
+    "Rambling; drifts onto a tangent once or twice and comes back to the point.",
+    "Terse and clipped, almost telegraphic; fragments are fine.",
+    "Frustrated and venting; the speaker is annoyed but stays coherent.",
+    "Enumerates a lot out loud: first, second, then, also, and finally.",
+    "Formal and polite, as if reading out a letter.",
+    "Excited and fast; one idea tumbles into the next.",
+    "Tired, late at night; long run-on sentences joined with 'and' and 'so'.",
+    "Hesitant; the speaker thinks aloud, weighs options and changes their mind once.",
 ]
 
 SYSTEM = """You write realistic transcripts of English voice recordings, as a modern speech recognition engine would output them: correct punctuation and casing, sentence boundaries, spoken register (contractions, "so", "okay", "I mean", the occasional mid-sentence self-correction), but no "um"/"uh" and no transcription errors.
@@ -101,12 +125,19 @@ def api_key() -> str:
 
 def specs(n: int, seed: int) -> list[dict]:
     rng = random.Random(seed)
+    styles = STYLES if seed == 1 else STYLES + STYLES_VARIED
     out = []
     for i in range(n):
         lo, hi = rng.choice(LENGTHS)
-        out.append({"id": f"syn-{seed}-{i:04d}", "kind": rng.choice(KINDS), "topic": rng.choice(TOPICS),
-                    "words": [lo, hi], "style": rng.choice(STYLES)})
+        kind = rng.choice(KINDS)
+        out.append({"id": f"syn-{seed}-{i:04d}", "kind": kind, "topic": rng.choice(TOPICS),
+                    "words": [lo, hi], "style": rng.choice(styles), "audience": audience(kind)})
     return out
+
+
+def params(s: dict) -> dict:
+    return dict(model=MODEL, max_tokens=8000, system=SYSTEM, output_config={"effort": "low"},
+                messages=[{"role": "user", "content": prompt(s)}])
 
 
 def prompt(s: dict) -> str:
@@ -118,33 +149,46 @@ def submit(n: int, seed: int) -> None:
     client = anthropic.Anthropic(api_key=api_key())
     ss = specs(n, seed)
     batch = client.messages.batches.create(requests=[
-        Request(custom_id=s["id"], params=MessageCreateParamsNonStreaming(
-            model=MODEL, max_tokens=8000, system=SYSTEM,
-            output_config={"effort": "low"},
-            messages=[{"role": "user", "content": prompt(s)}],
-        )) for s in ss
+        Request(custom_id=s["id"], params=MessageCreateParamsNonStreaming(**params(s))) for s in ss
     ])
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    (OUT_DIR / "batch.json").write_text(json.dumps({"batch_id": batch.id, "model": MODEL, "seed": seed, "specs": ss}, indent=1))
+    (OUT_DIR / f"batch-{seed}.json").write_text(json.dumps({"batch_id": batch.id, "model": MODEL, "seed": seed, "specs": ss}, indent=1))
     print(f"submitted {batch.id} ({n} requests)")
 
 
 BAD = re.compile(r"^\s*(#|[-*•]\s|\d+[.)]\s)", re.M)
 
 
-def collect() -> None:
-    meta = json.loads((OUT_DIR / "batch.json").read_text())
+def collect(seed: int) -> None:
+    meta = json.loads((OUT_DIR / f"batch-{seed}.json").read_text())
     client = anthropic.Anthropic(api_key=api_key())
     while (b := client.messages.batches.retrieve(meta["batch_id"])).processing_status != "ended":
         print(f"{b.processing_status}: {b.request_counts.processing} processing", flush=True)
         time.sleep(60)
-    by_id = {s["id"]: s for s in meta["specs"]}
+    results = [(r.custom_id, r.result.message if r.result.type == "succeeded" else r.result.type)
+               for r in client.messages.batches.results(meta["batch_id"])]
+    write(seed, meta["specs"], results)
+
+
+def run(n: int, seed: int) -> None:
+    """Direct (non-batch) calls in parallel: for small sets where waiting on a batch isn't worth it."""
+    from concurrent.futures import ThreadPoolExecutor
+    client = anthropic.Anthropic(api_key=api_key())
+    ss = specs(n, seed)
+    with ThreadPoolExecutor(8) as ex:
+        msgs = list(ex.map(lambda s: client.messages.create(**params(s)), ss))
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    (OUT_DIR / f"batch-{seed}.json").write_text(json.dumps({"batch_id": None, "model": MODEL, "seed": seed, "specs": ss}, indent=1))
+    write(seed, ss, [(s["id"], m) for s, m in zip(ss, msgs)])
+
+
+def write(seed: int, ss: list[dict], results: list) -> None:
+    by_id = {s["id"]: s for s in ss}
     rows, rejected, usage = [], {}, [0, 0]
-    for r in client.messages.batches.results(meta["batch_id"]):
-        if r.result.type != "succeeded":
-            rejected[r.result.type] = rejected.get(r.result.type, 0) + 1
+    for custom_id, msg in results:
+        if isinstance(msg, str):
+            rejected[msg] = rejected.get(msg, 0) + 1
             continue
-        msg = r.result.message
         usage[0] += msg.usage.input_tokens
         usage[1] += msg.usage.output_tokens
         text = next((blk.text for blk in msg.content if blk.type == "text"), "").strip()
@@ -155,12 +199,13 @@ def collect() -> None:
         if reason:
             rejected[reason] = rejected.get(reason, 0) + 1
             continue
-        s = by_id[r.custom_id]
-        rows.append({"id": r.custom_id, "spec": s, "proposed": "\n\n".join(paras), "text": " ".join(paras),
+        s = by_id[custom_id]
+        rows.append({"id": custom_id, "spec": s, "proposed": "\n\n".join(paras), "text": " ".join(paras),
                      "n_paragraphs": len(paras), "words": len(" ".join(paras).split()), "model": MODEL})
     rows.sort(key=lambda x: x["id"])
-    (OUT_DIR / "synthetic.jsonl").write_text("".join(json.dumps(x, ensure_ascii=False) + "\n" for x in rows))
-    print(f"{len(rows)} kept, rejected {rejected}, usage in={usage[0]} out={usage[1]} -> data/synthetic/synthetic.jsonl")
+    out = OUT_DIR / f"synthetic-{seed}.jsonl"
+    out.write_text("".join(json.dumps(x, ensure_ascii=False) + "\n" for x in rows))
+    print(f"{len(rows)} kept, rejected {rejected}, usage in={usage[0]} out={usage[1]} -> {out.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":
@@ -169,6 +214,8 @@ if __name__ == "__main__":
     if cmd == "submit":
         submit(int(args.get("--n", 500)), int(args.get("--seed", 1)))
     elif cmd == "collect":
-        collect()
+        collect(int(args.get("--seed", 1)))
+    elif cmd == "run":
+        run(int(args.get("--n", 30)), int(args.get("--seed", 2)))
     else:
         sys.exit(__doc__)

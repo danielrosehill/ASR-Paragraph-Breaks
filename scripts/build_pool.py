@@ -14,8 +14,9 @@ Sources (all public; checked 2026-10-21):
   svn  danielrosehill/STT-Voice-Notes-Evals, transcriptions/openai/whisper-1/raw/*.txt (Apache-2.0).
        LLM-written voice memos, read aloud and transcribed by whisper-1. 16 rows.
   nvn  danielrosehill/Noisy-Voice-Notes, transcripts/*.md (CC-BY-4.0). Real noisy voice notes. 7 rows.
-  syn  data/synthetic/synthetic.jsonl from scripts/generate_synthetic.py (Claude Haiku 5.5). Already
-       paragraphed: carries `proposed` (the model's breaks) for review in the Space. Listed first.
+  syn  data/synthetic/synthetic-<seed>.jsonl from scripts/generate_synthetic.py (Claude Haiku 5.5). Already
+       paragraphed. `proposed` = Haiku's breaks plus scripts/style_rules.py (rules 1-3 of
+       docs/paragraphing-style.md); Haiku's original is kept as `haiku_proposed`. Listed first.
 
 No large synthetic voice-memo dataset was found on the Hub (search of 2026-10-21; synthetic dictation
 cleanup sets exist but are 10-90 words, too short to need paragraphs). Ids are stable across rebuilds.
@@ -33,6 +34,8 @@ import urllib.request
 from pathlib import Path
 
 import pyarrow.parquet as pq
+
+from style_rules import apply as style_rules  # same directory; docs/paragraphing-style.md rules 1-3
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "pool" / "pool.jsonl"
@@ -114,14 +117,19 @@ def nvn():
         yield from items("nvn", nid, re.sub(r"^#.*$", "", body, flags=re.M))
 
 
+PROPOSAL_METHOD = "haiku-5.5 + style_rules v1"
+
+
 def syn():
-    path = ROOT / "data" / "synthetic" / "synthetic.jsonl"
-    if not path.exists():
-        return
-    for line in path.read_text(encoding="utf-8").splitlines():
-        r = json.loads(line)
-        yield {"id": r["id"], "source": "syn", "source_id": r["id"], "chunk": "1/1", "text": r["text"],
-               "words": r["words"], "proposed": r["proposed"], "proposal_model": r["model"]}
+    for path in sorted((ROOT / "data" / "synthetic").glob("synthetic-*.jsonl")):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            r = json.loads(line)
+            yield {"id": r["id"], "source": "syn", "source_id": r["id"], "chunk": "1/1", "text": r["text"],
+                   "words": r["words"], "proposed": "\n\n".join(style_rules(r["proposed"])),
+                   "haiku_proposed": r["proposed"], "proposal_model": r["model"], "proposal_method": PROPOSAL_METHOD,
+                   "audience": r["spec"].get("audience"), "style": r["spec"]["style"],
+                   # Seeds 2+ (style-varied) are the golden set: review them first.
+                   "priority": 0 if r["id"].startswith("syn-1-") else 1}
 
 
 def main() -> None:

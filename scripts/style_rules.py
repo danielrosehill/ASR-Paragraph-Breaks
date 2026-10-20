@@ -14,6 +14,18 @@ import re
 import sys
 
 SENT = re.compile(r"(?<=[.!?])\s+")
+# Titles and abbreviations whose full stop does not end a sentence ("Mr. Delgado", "St. Mary's").
+ABBREV = re.compile(r"(?:^|\s)(?:Mr|Mrs|Ms|Dr|Prof|St|Mt|Jr|Sr|vs|etc|e\.g|i\.e|approx|No)\.$", re.I)
+
+
+def sentences(p: str) -> list[str]:
+    out: list[str] = []
+    for piece in SENT.split(p.strip()):
+        if out and ABBREV.search(out[-1]):
+            out[-1] += " " + piece
+        elif piece:
+            out.append(piece)
+    return out
 LEAD_MAX_WORDS = 11   # rule 2: a paragraph-opening sentence this short is a signpost
 CLOSE_MAX_WORDS = 10  # rule 3: trailing sentences this short are closing lines
 
@@ -22,7 +34,7 @@ def apply(proposed: str, lead: int = LEAD_MAX_WORDS, close: int = CLOSE_MAX_WORD
     paras = [p for p in proposed.split("\n\n") if p.strip()]
     out: list[str] = []
     for i, p in enumerate(paras):
-        s = [x for x in SENT.split(p.strip()) if x]
+        s = sentences(p)
         if i == len(paras) - 1:
             tail = []
             while len(s) > 1 and len(s[-1].split()) <= close:
