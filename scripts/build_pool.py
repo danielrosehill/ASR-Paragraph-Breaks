@@ -117,7 +117,7 @@ def nvn():
         yield from items("nvn", nid, re.sub(r"^#.*$", "", body, flags=re.M))
 
 
-PROPOSAL_METHOD = "haiku-5.5 + style_rules v1"
+PROPOSAL_METHOD = "haiku-5.5 + style_rules v1.1"
 
 
 def syn():

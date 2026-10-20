@@ -26,7 +26,7 @@
     },
     "built": "2026-10-21"
   },
-  "annotations": 20,
+  "annotations": 46,
   "links": {
     "github": "https://github.com/danielrosehill/ASR-Paragraph-Breaks",
     "hf_dataset": "https://huggingface.co/datasets/danielrosehill/ASR-Paragraph-Breaks",
@@ -44,13 +44,16 @@
   },
   "style_rules": {
     "doc": "docs/paragraphing-style.md",
-    "f1_vs_gold": 0.84,
-    "gold_items": 19,
+    "version": "1.1",
+    "f1_fitted_syn1": 0.85,
+    "f1_heldout_syn2": 0.96,
+    "f1_all_45": 0.91,
     "llm_rules_f1_cv": 0.73
   },
   "golden_set": {
     "ids": "syn-2-*",
     "n": 30,
-    "status": "awaiting review"
+    "reviewed": 26,
+    "unchanged": 13
   }
 }
