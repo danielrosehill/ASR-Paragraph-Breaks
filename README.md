@@ -6,8 +6,10 @@ Speech-to-text output is punctuated and cased but arrives as one block, even fro
 sentence boundaries. This project hand-annotates where the paragraphs go and fine-tunes a small model on
 those annotations.
 
-**Status (2026-10-21): annotating.** The pool is built (959 items, about 368k words), and the annotation
-Space and dataset are live. No annotations or model yet.
+**Status (2026-10-21): reviewing.** The main training source is 500 synthetic voice-memo transcripts,
+written and paragraphed by Claude Haiku 5.5 through the Message Batches API. Each one is reviewed and
+corrected by hand in the Space. Real ASR monologue (scrappier) stays in the pool, after the synthetic
+items, for annotation from scratch. No model yet.
 
 | | |
 |---|---|
@@ -15,12 +17,14 @@ Space and dataset are live. No annotations or model yet.
 | Annotation Space | [`danielrosehill/ASR-Paragraph-Annotator`](https://huggingface.co/spaces/danielrosehill/ASR-Paragraph-Annotator) |
 | Model | not trained yet |
 
-## Why hand annotation
+## Why model-proposed, hand-reviewed pairs
 
-The cheap way to get training data is to take paragraphed text, flatten it and learn to restore the
-breaks. That learns the conventions of written text (edited articles, Wikipedia), not how someone wants a
-dictated monologue broken up. Paragraphing is a judgement call, so the breaks here are placed by hand on
-real ASR monologue that was never paragraphed.
+Flattening edited prose (articles, Wikipedia) and learning to restore its breaks teaches the conventions
+of written text, not of dictated speech. Annotating real voice-note transcripts from scratch works but is
+slow, and the transcripts are scrappy. So Haiku writes spoken-register memos with paragraph breaks
+already in place, the flat input is derived by joining the paragraphs (the pair can only differ in
+whitespace), and every proposal is reviewed by hand. The `edited` rate is itself a measure of how close
+a prompted model already gets.
 
 ## Why a generative model, given SaT exists
 
@@ -33,6 +37,7 @@ against the input: if anything other than whitespace changed, fall back to the i
 
 | Path | What |
 |---|---|
+| [`scripts/generate_synthetic.py`](scripts/generate_synthetic.py) | Haiku 5.5 batch generation of paragraphed memos (`submit`, then `collect`); prompt, scenario grid and key lookup are in the file |
 | [`scripts/build_pool.py`](scripts/build_pool.py) | Builds `pool/pool.jsonl` from public HF sources; `--upload` pushes it. Sources and filters are in its docstring |
 | [`space/`](space/) | The Gradio annotation Space (deployed to HF as-is) |
 | [`hf-dataset/README.md`](hf-dataset/README.md) | The dataset card, uploaded to the HF dataset repo |

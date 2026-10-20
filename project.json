@@ -4,22 +4,42 @@
   "title": "Add paragraph breaks to flat ASR text, changing nothing else",
   "created": "2026-10-21",
   "updated": "2026-10-21",
-  "status": "annotating",
+  "status": "reviewing",
   "task": {
     "pipeline_tag": "text-generation",
     "modality": "text",
-    "languages": ["en"],
+    "languages": [
+      "en"
+    ],
     "input": "flat, punctuated, cased ASR text (one block)",
     "output": "identical text with paragraphs separated by blank lines",
     "invariant": "output with whitespace removed equals input with whitespace removed",
     "baseline": "segment-any-text/sat-3l-sm with do_paragraph_segmentation=True"
   },
-  "pool": {"items": 959, "words": 367822, "by_source": {"mwp": 939, "svn": 15, "nvn": 5}, "built": "2026-10-21"},
+  "pool": {
+    "items": 1459,
+    "by_source": {
+      "syn": 500,
+      "mwp": 939,
+      "svn": 15,
+      "nvn": 5
+    },
+    "built": "2026-10-21"
+  },
   "annotations": 0,
   "links": {
     "github": "https://github.com/danielrosehill/ASR-Paragraph-Breaks",
     "hf_dataset": "https://huggingface.co/datasets/danielrosehill/ASR-Paragraph-Breaks",
     "hf_space": "https://huggingface.co/spaces/danielrosehill/ASR-Paragraph-Annotator",
     "parent_project": "https://github.com/danielrosehill/ASR-Post-Processor-Model"
+  },
+  "synthetic": {
+    "model": "claude-haiku-5-5",
+    "batch": "msgbatch_014fmK7BEPFMfguiFKmtxrzF",
+    "requested": 500,
+    "kept": 500,
+    "median_words": 349.5,
+    "median_paragraphs": 6,
+    "date": "2026-10-21"
   }
 }

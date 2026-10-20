@@ -29,8 +29,9 @@ as one block. This dataset pairs that block (`text`) with the same text split in
 refuses any save that alters them. It is training data for a small text-in/text-out model that does only
 this one job.
 
-Paragraphing is a judgement call, so the breaks are hand-placed rather than recovered from
-already-paragraphed text that was flattened. Most items come from one annotator, so they reflect one
+Paragraphing is a judgement call, so every break is checked by a person. Synthetic items (`syn`) arrive
+with the generating model's breaks and are reviewed and corrected in the Space; the `edited` field says
+whether the annotator changed them. Real ASR items arrive flat and are paragraphed from scratch. Most items come from one annotator, so they reflect one
 person's preference: short paragraphs, a break at each change of subject.
 
 ## Configs
@@ -47,6 +48,7 @@ Training pair: `text` → `paragraphed`.
 
 | Key | Upstream | Licence | What |
 |---|---|---|---|
+| `syn` | [`scripts/generate_synthetic.py`](https://github.com/danielrosehill/ASR-Paragraph-Breaks/blob/main/scripts/generate_synthetic.py) | CC-BY-4.0 | Synthetic voice-memo transcripts written and paragraphed by Claude Haiku 5.5, then reviewed and corrected by hand |
 | `mwp` | [`My-Weird-Prompts/episodes`](https://huggingface.co/datasets/My-Weird-Prompts/episodes) `prompt_sanitized` | CC-BY-4.0 | Dictated podcast prompts, 300+ words, real ASR |
 | `svn` | [`danielrosehill/STT-Voice-Notes-Evals`](https://huggingface.co/datasets/danielrosehill/STT-Voice-Notes-Evals) whisper-1 transcripts | Apache-2.0 | LLM-written voice memos, read aloud, transcribed by whisper-1 |
 | `nvn` | [`danielrosehill/Noisy-Voice-Notes`](https://huggingface.co/datasets/danielrosehill/Noisy-Voice-Notes) | CC-BY-4.0 | Real voice notes recorded in noisy settings |

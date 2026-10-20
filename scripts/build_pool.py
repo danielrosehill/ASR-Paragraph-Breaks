@@ -14,6 +14,8 @@ Sources (all public; checked 2026-10-21):
   svn  danielrosehill/STT-Voice-Notes-Evals, transcriptions/openai/whisper-1/raw/*.txt (Apache-2.0).
        LLM-written voice memos, read aloud and transcribed by whisper-1. 16 rows.
   nvn  danielrosehill/Noisy-Voice-Notes, transcripts/*.md (CC-BY-4.0). Real noisy voice notes. 7 rows.
+  syn  data/synthetic/synthetic.jsonl from scripts/generate_synthetic.py (Claude Haiku 5.5). Already
+       paragraphed: carries `proposed` (the model's breaks) for review in the Space. Listed first.
 
 No large synthetic voice-memo dataset was found on the Hub (search of 2026-10-21; synthetic dictation
 cleanup sets exist but are 10-90 words, too short to need paragraphs). Ids are stable across rebuilds.
@@ -112,8 +114,18 @@ def nvn():
         yield from items("nvn", nid, re.sub(r"^#.*$", "", body, flags=re.M))
 
 
+def syn():
+    path = ROOT / "data" / "synthetic" / "synthetic.jsonl"
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        r = json.loads(line)
+        yield {"id": r["id"], "source": "syn", "source_id": r["id"], "chunk": "1/1", "text": r["text"],
+               "words": r["words"], "proposed": r["proposed"], "proposal_model": r["model"]}
+
+
 def main() -> None:
-    rows = [*mwp(), *svn(), *nvn()]
+    rows = [*syn(), *mwp(), *svn(), *nvn()]
     assert len({r["id"] for r in rows}) == len(rows), "duplicate ids"
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows), encoding="utf-8")
