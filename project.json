@@ -34,7 +34,8 @@
     "parent_project": "https://github.com/danielrosehill/ASR-Post-Processor-Model",
     "hf_model": "https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks",
     "hf_model_onnx": "https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks-ONNX",
-    "hf_demo_space": "https://huggingface.co/spaces/danielrosehill/ASR-Paragraph-Breaks-Demo"
+    "hf_demo_space": "https://huggingface.co/spaces/danielrosehill/ASR-Paragraph-Breaks-Demo",
+    "blog_post": "https://blog.danielrosehill.com/posts/asr-paragraph-breaks-gemma-3-270m-85hckk/"
   },
   "synthetic": {
     "model": "claude-haiku-5-5",

@@ -18,6 +18,7 @@ reviews. Details: [`docs/training.md`](docs/training.md).
 | Annotation Space | [`danielrosehill/ASR-Paragraph-Annotator`](https://huggingface.co/spaces/danielrosehill/ASR-Paragraph-Annotator) |
 | Model | [`danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks), ONNX: [`…-ONNX`](https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks-ONNX) |
 | Demo Space | [`danielrosehill/ASR-Paragraph-Breaks-Demo`](https://huggingface.co/spaces/danielrosehill/ASR-Paragraph-Breaks-Demo) (CPU; optional email key-line bolding step) |
+| Blog post (2026-10-21) | <https://blog.danielrosehill.com/posts/asr-paragraph-breaks-gemma-3-270m-85hckk/> |
 
 ## Why model-proposed, hand-reviewed pairs
 
