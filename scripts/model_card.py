@@ -149,6 +149,7 @@ Adds paragraph breaks to flat speech-to-text output and changes nothing else. Sp
 (here, a Parakeet fine-tune) returns punctuated, cased text as one block; this model returns the same
 text with paragraphs separated by blank lines. It is small enough to run on a phone after the ASR pass.
 An ONNX export for ONNX Runtime is at [`{onnx_id}`](https://huggingface.co/{onnx_id}).
+Try it in the [demo Space](https://huggingface.co/spaces/danielrosehill/ASR-Paragraph-Breaks-Demo) (CPU; optionally chains the email key-line bolding model).
 
 ## Results
 

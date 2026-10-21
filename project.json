@@ -33,7 +33,8 @@
     "hf_space": "https://huggingface.co/spaces/danielrosehill/ASR-Paragraph-Annotator",
     "parent_project": "https://github.com/danielrosehill/ASR-Post-Processor-Model",
     "hf_model": "https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks",
-    "hf_model_onnx": "https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks-ONNX"
+    "hf_model_onnx": "https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks-ONNX",
+    "hf_demo_space": "https://huggingface.co/spaces/danielrosehill/ASR-Paragraph-Breaks-Demo"
   },
   "synthetic": {
     "model": "claude-haiku-5-5",

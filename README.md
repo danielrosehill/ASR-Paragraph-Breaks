@@ -17,6 +17,7 @@ reviews. Details: [`docs/training.md`](docs/training.md).
 | Dataset | [`danielrosehill/ASR-Paragraph-Breaks`](https://huggingface.co/datasets/danielrosehill/ASR-Paragraph-Breaks) |
 | Annotation Space | [`danielrosehill/ASR-Paragraph-Annotator`](https://huggingface.co/spaces/danielrosehill/ASR-Paragraph-Annotator) |
 | Model | [`danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks), ONNX: [`…-ONNX`](https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks-ONNX) |
+| Demo Space | [`danielrosehill/ASR-Paragraph-Breaks-Demo`](https://huggingface.co/spaces/danielrosehill/ASR-Paragraph-Breaks-Demo) (CPU; optional email key-line bolding step) |
 
 ## Why model-proposed, hand-reviewed pairs
 
@@ -41,6 +42,7 @@ against the input: if anything other than whitespace changed, fall back to the i
 | [`scripts/generate_synthetic.py`](scripts/generate_synthetic.py) | Haiku 5.5 batch generation of paragraphed memos (`submit`, then `collect`); prompt, scenario grid and key lookup are in the file |
 | [`scripts/build_pool.py`](scripts/build_pool.py) | Builds `pool/pool.jsonl` from public HF sources; `--upload` pushes it. Sources and filters are in its docstring |
 | [`space/`](space/) | The Gradio annotation Space (deployed to HF as-is) |
+| [`demo/`](demo/) | The public demo Space (deployed to HF as-is); examples are 4 held-out golden `syn-2-*` memos, flattened. Measured 2026-10-21 on CPU basic: 22 s for a 208-word memo, 42 s with the bolding step on a 220-word one |
 | [`hf-dataset/README.md`](hf-dataset/README.md) | The dataset card, uploaded to the HF dataset repo |
 | [`docs/data-format.md`](docs/data-format.md) | Pool and annotation record schemas |
 | [`docs/paragraphing-style.md`](docs/paragraphing-style.md) | The paragraphing rules derived from the hand reviews, and how well code reproduces them |
@@ -57,9 +59,10 @@ export HF_TOKEN="$HUGGINGFACE_TOKEN"
 uv run scripts/build_pool.py --upload                    # rebuild and push the pool
 hf upload danielrosehill/ASR-Paragraph-Breaks hf-dataset/README.md README.md --repo-type dataset
 hf upload danielrosehill/ASR-Paragraph-Annotator space . --repo-type space
+hf upload danielrosehill/ASR-Paragraph-Breaks-Demo demo . --repo-type space
 ```
 
-The Space has no secrets. It saves with the signed-in user's OAuth token (`hf_oauth_scopes: write-repos`),
+The annotation Space has no secrets. It saves with the signed-in user's OAuth token (`hf_oauth_scopes: write-repos`),
 so only accounts with write access to the dataset can save.
 
 ## Related
