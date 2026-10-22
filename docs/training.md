@@ -45,7 +45,7 @@ Per-run `metrics.json` and `pred_ft.jsonl` are in `runs/<run>/`.
 |---|---|
 | Hub, PyTorch (public) | [`danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks) (r2) |
 | Hub, ONNX (public) | [`danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks-ONNX`](https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks-ONNX) (r2) |
-| Archive (private) | `wasabi:small-models/ai-training/runs/<run>/` for r2 (model, onnx, metrics, predictions) and r3 (model, metrics, predictions), each with `SHA256SUMS`; `rclone check` 0 differences. Procedure: skill `voice-model-training:wasabi-archive` section 6 |
+| Archive (private) | `wasabi:hf-llms/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks/<YYYY-MM-DD>_<sha7>/` (latest HF revision, `SHA256SUMS` + `MODEL.json`, verified 2026-10-22; ONNX export not kept, it rebuilds). The per-run r2/r3 copies in `small-models` were retired with that bucket on 2026-10-22, and the Modal run weights deleted the same day |
 | Modal volume `ai-training` | Weights and checkpoints deleted after the archive and Hub checks; small files kept |
 | Exact split for r2 | dataset `danielrosehill/ASR-Paragraph-Breaks`, `training/r2/{train,test}.jsonl` |
 

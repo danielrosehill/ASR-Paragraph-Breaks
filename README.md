@@ -8,7 +8,7 @@ those annotations.
 
 **Status (2026-10-21): first model released.** A Gemma 3 270M fine-tune (run r2) scores break F1 0.78
 on 26 held-out hand-reviewed memos, with 2 of 26 outputs falling back to the input. Published on the Hub
-with an ONNX export; weights archived in Wasabi (`small-models`). Training data: 500 synthetic memos
+with an ONNX export; weights backed up in Wasabi (`hf-llms`, latest HF revision). Training data: 500 synthetic memos
 from Claude Haiku 5.5, hand-reviewed where possible and otherwise labelled by rules derived from those
 reviews. Details: [`docs/training.md`](docs/training.md).
 

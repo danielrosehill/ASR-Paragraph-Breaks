@@ -94,5 +94,5 @@
       "published": false
     }
   ],
-  "archive": "wasabi:small-models/ai-training/runs/"
+  "archive": "wasabi:hf-llms/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks/ (latest HF revision only; small-models retired 2026-10-22)"
 }
