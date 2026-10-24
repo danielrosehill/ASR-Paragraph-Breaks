@@ -54,8 +54,8 @@ including per-epoch dev evaluation; each r5 run trains 3 seeds and the whole job
 
 ## Encoder classifier (r5, 2026-10-24)
 
-Why: the Hebrish apps need a paragraph step that is small, fast, cannot alter the text and runs on the
-ONNX Runtime both apps already ship. The r2 Gemma is 437 MB int8 and generative (23-48 s per memo on CPU).
+Why: an on-device paragraph step should be small, fast, unable to alter the text, and run on ONNX
+Runtime. The r2 Gemma is 437 MB int8 and generative (23-48 s per memo on CPU).
 
 **Formulation.** Word-level token classification. The flat text is split on whitespace; label 1 = a
 paragraph starts at this word (every paragraph after the first, from the target's breaks, equivalently
@@ -155,8 +155,7 @@ about US$0.40; two live jobs, 71 min wall, about US$1.00. Total about US$1.40.
 | Copy | Location |
 |---|---|
 | Hub, r5b encoder (public) | [`danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks), revision `3b277dd` (PyTorch + `onnx/`) |
-| CDN, r5b int8 (public, what the apps download) | `https://cdn.hebrish.app/models/paragraph-breaks/r5b-minilm-l12/onnx-int8/`, manifest `models/paragraph-breaks/latest.json` (immutable version folder; manifest cached 5 min) |
-| Archive, r5b encoder (private) | `wasabi:hf-classifiers/danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks/2026-10-24_3b277dd/` (12 files incl. `onnx/`, the map has `backup_exports` because the apps ship the int8 file; `SHA256SUMS` + `MODEL.json`, verified 2026-10-24 by `hf_backup.py`) |
+| Archive, r5b encoder (private) | `wasabi:hf-classifiers/danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks/2026-10-24_3b277dd/` (12 files incl. `onnx/`, the map has `backup_exports` because an app would ship the int8 file; `SHA256SUMS` + `MODEL.json`, verified 2026-10-24 by `hf_backup.py`) |
 | Hub, PyTorch (public) | [`danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks) (r2) |
 | Hub, ONNX (public) | [`danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks-ONNX`](https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks-ONNX) (r2) |
 | Archive (private) | `wasabi:hf-llms/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks/<YYYY-MM-DD>_<sha7>/` (latest HF revision, `SHA256SUMS` + `MODEL.json`, verified 2026-10-22; ONNX export not kept, it rebuilds). The per-run r2/r3 copies in `small-models` were retired with that bucket on 2026-10-22, and the Modal run weights deleted the same day |
@@ -192,22 +191,17 @@ modal run --detach app.py --upload ~/repos/github/audio-dictation/ASR-Paragraph-
 Upload gotcha (2026-10-21): `hf upload` of the whole ONNX folder was killed with SIGTERM on the laptop
 (memory pressure while hashing the 1.7 GB file); uploading each large file in its own `hf upload` call worked.
 
-### What app integration (Hebrish backlog B-40 / B-40a) needs next
+### Publication and status (2026-10-24)
 
-Status 2026-10-24: Hebrish apps 1.001 ship without paragraphs; integration moved to the next sprint.
-
-1. Daniel's call on the arm: full-context r5b-MiniLM-L12 int8 (F1 0.85, 32 MB) runs once per memo after
-   transcription; the live variant (F1 0.81) only if breaks must appear while dictating. Live was trained on
-   r5 data only, so retrain it on r5b (`LIVE=1 EPOCHS=5`, about 42 min, US$0.60) if it is wanted.
-2. Publish: done on the Hub 2026-10-24 (Daniel), [`danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks): PyTorch at the root, `onnx/` with
-   `model_int8.onnx`, `model.onnx`, `vocab.txt`, `config.json`; card and `paragraphs.py` from `hub/minilm/`.
-   `paragraphs.py` reproduces `pred_ft.jsonl` exactly with `model.onnx` (26 of 26 outputs, 0 differing decisions,
-   max prob diff 5e-5) and gives the same 33 differing decisions as `onnx_check.json` with int8. CDN copy for the apps
-   (2026-10-24): `https://cdn.hebrish.app/models/paragraph-breaks/latest.json` → `r5b-minilm-l12/onnx-int8/`
-   (`model_int8.onnx`, `vocab.txt`, `config.json`; SHA-256 of the served bytes checked). App spec and parity
-   cases: Hebrish-App `shared/paragraphs.md`, `shared/paragraph-cases.json`.
-3. App side: WordPiece tokenizer (lower-case, BERT basic tokenisation, `vocab.txt`), the windowing and
-   "most central window" merge from `train_tokcls.py` (`windows`, `word_probs`), threshold from
-   `config.json`, then join words with a space or a blank line. Port and test against
-   `runs/asr-paragraph-r5b-minilm-l12/pred_ft.jsonl` (per-word probabilities included) for parity.
-4. Latency on a phone is unmeasured; the laptop figures above are 0.65 s mean for a 340-word memo on 1 thread.
+- Hub: [`danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks),
+  revision `3b277dd`: PyTorch at the root, `onnx/` with `model_int8.onnx`, `model.onnx`, `vocab.txt`, `config.json`;
+  card and `paragraphs.py` from `hub/minilm/`. `paragraphs.py` reproduces `pred_ft.jsonl` exactly with `model.onnx`
+  (26 of 26 outputs, 0 differing decisions, max prob diff 5e-5) and gives the same 33 differing decisions as
+  `onnx_check.json` with int8.
+- **Not in the Hebrish apps** (Daniel, 2026-10-24; Hebrish-App decision D-2026-10-24-08): paragraph
+  inference is this separate project and needs a different architecture. A same-day Hebrish CDN copy and app spec
+  were removed. This text-only r5b classifier is a baseline, not the end point.
+- Next: a model trained on dictated audio, where pauses are information a text-only model does not get. Data:
+  [`danielrosehill/Paragraph-Dictation-Passages`](https://huggingface.co/datasets/danielrosehill/Paragraph-Dictation-Passages)
+  (passages dictated in one take, `text` flat, `paragraph_text` with the breaks; 3 takes on 2026-10-24, recorded
+  with the ASR-Training capture app's Paragraphs task, which no Hebrish model trains on).

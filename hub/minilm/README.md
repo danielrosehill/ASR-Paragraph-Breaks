@@ -26,7 +26,7 @@ text** and needs no fallback check.
 - 33.2M parameters (MiniLM-L12-H384, WordPiece, uncased), fine-tuned for word-level token classification.
 - `onnx/model_int8.onnx` is 32 MB and runs one forward pass per 510-token window on ONNX Runtime 1.17+.
 - Successor to the generative [`danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks)
-  (437 MB int8, 23-48 s per memo on CPU), built for the on-device dictation apps.
+  (437 MB int8, 23-48 s per memo on CPU), small enough for on-device use.
 
 ## Results
 
