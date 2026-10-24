@@ -198,9 +198,12 @@ Upload gotcha (2026-10-21): `hf upload` of the whole ONNX folder was killed with
   card and `paragraphs.py` from `hub/minilm/`. `paragraphs.py` reproduces `pred_ft.jsonl` exactly with `model.onnx`
   (26 of 26 outputs, 0 differing decisions, max prob diff 5e-5) and gives the same 33 differing decisions as
   `onnx_check.json` with int8.
-- **Not in the Hebrish apps** (Daniel, 2026-10-24; Hebrish-App decision D-2026-10-24-08): paragraph
-  inference is this separate project and needs a different architecture. A same-day Hebrish CDN copy and app spec
-  were removed. This text-only r5b classifier is a baseline, not the end point.
+- **In the Hebrish apps as an option only** (Daniel, 2026-10-24; Hebrish-App D-2026-10-24-08, then -09):
+  Transcription Mode's Paragraphs setting offers None / Time-based / Paragraph model, the last being this r5b
+  int8 file from `https://cdn.hebrish.app/models/paragraph-breaks/latest.json` (app spec and parity cases:
+  Hebrish-App `shared/paragraphs.md`, `shared/paragraph-cases.json`). Paragraph inference itself stays this
+  separate project: passages are never Hebrish ASR training data, and this text-only classifier is a
+  baseline, not the end point.
 - Next: a model trained on dictated audio, where pauses are information a text-only model does not get. Data:
   [`danielrosehill/Paragraph-Dictation-Passages`](https://huggingface.co/datasets/danielrosehill/Paragraph-Dictation-Passages)
   (passages dictated in one take, `text` flat, `paragraph_text` with the breaks; 3 takes on 2026-10-24, recorded
