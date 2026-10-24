@@ -40,7 +40,7 @@ a ~70M encoder that classifies break positions (single ONNX pass, cannot alter t
 | asr-paragraph-r5-electra-small | google/electra-small-discriminator (13.5M) | L4 | 101 s/seed | 0.84 / 0.79 / 0.81 | 0 | r5 set (v1.2 + noise copies); seed mean F1 0.81; extra 0.81 |
 | asr-paragraph-r5-minilm-l12 | microsoft/MiniLM-L12-H384-uncased (33.2M) | L4 | 138 s/seed | 0.89 / 0.82 / 0.85 | 0 | r5 set; seed mean F1 0.84; extra 0.78 |
 | asr-paragraph-r5b-electra-small | google/electra-small-discriminator (13.5M) | L4 | 79 s/seed | 0.83 / 0.81 / 0.82 | 0 | r5b set (r5 + fused greeting/valediction copies); seed mean F1 0.80; extra 0.84 |
-| **asr-paragraph-r5b-minilm-l12** | microsoft/MiniLM-L12-H384-uncased (33.2M) | L4 | 142 s/seed | **0.86 / 0.84 / 0.85** | 0 | r5b set; seed mean F1 0.85; extra 0.83. **Best arm**; ONNX int8 32 MB, F1 0.85. Not published |
+| **asr-paragraph-r5b-minilm-l12** | microsoft/MiniLM-L12-H384-uncased (33.2M) | L4 | 142 s/seed | **0.86 / 0.84 / 0.85** | 0 | r5b set; seed mean F1 0.85; extra 0.83. **Best arm**; ONNX int8 32 MB, F1 0.85. **Published** (`danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks`) |
 | asr-paragraph-r5-electra-small-live | google/electra-small-discriminator | L4 | ~9 min/seed | 0.82 / 0.79 / 0.80 | 0 | Live variant (no right context past the current sentence), r5 set, 5 epochs; seed mean F1 0.79 (full context 0.81); extra 0.79 |
 | asr-paragraph-r5-minilm-l12-live | microsoft/MiniLM-L12-H384-uncased | L4 | ~13.5 min/seed | 0.83 / 0.79 / 0.81 | 0 | Live variant, r5 set, 5 epochs; seed mean F1 0.81 (full context 0.84); extra 0.71 |
 | sat-3l-sm-baseline | segment-any-text/sat-3l-sm | laptop CPU | – | 0.48 / 1.00 / 0.65 | 0 | wtpsplit 2.2.2, `do_paragraph_segmentation=True`; same at threshold 0.5 and dev-tuned 0.35. sat-3l-sm has one boundary head, so its paragraphs are its sentences: it breaks after almost every sentence. extra 0.68 |
@@ -134,7 +134,7 @@ Default ONNX Runtime threading was not faster than 1 thread on this loaded machi
 both). A test memo averages 340 words and 2-3 windows; with STRIDE 384 or one window per short memo it would
 be fewer passes. Weights: Modal volume `ai-training`, `runs/<run>/model` for every r5 run; the best arm's
 PyTorch and ONNX files are also in `runs/asr-paragraph-r5b-minilm-l12/{model,onnx}/` on Daniel's laptop
-(git-ignored). Nothing was published to the Hub.
+(git-ignored). Published 2026-10-24 as [`danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks), Hub revision `3b277dd`.
 
 ```bash
 python3 scripts/build_training.py                 # r5b set; --no-aug for none
@@ -150,14 +150,16 @@ satv/bin/python scripts/sat_baseline.py > runs/sat-3l-sm-baseline/metrics.json  
 Cost (estimate, Modal L4 at about US$0.80/h plus CPU/memory): five full-context jobs, 30 min wall in total,
 about US$0.40; two live jobs, 71 min wall, about US$1.00. Total about US$1.40.
 
-## Where the weights are (2026-10-21)
+## Where the weights are (2026-10-24)
 
 | Copy | Location |
 |---|---|
+| Hub, r5b encoder (public) | [`danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks), revision `3b277dd` (PyTorch + `onnx/`) |
+| Archive, r5b encoder (private) | `wasabi:hf-classifiers/danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks/2026-10-24_3b277dd/` (12 files incl. `onnx/`, the map has `backup_exports` because the apps ship the int8 file; `SHA256SUMS` + `MODEL.json`, verified 2026-10-24 by `hf_backup.py`) |
 | Hub, PyTorch (public) | [`danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks) (r2) |
 | Hub, ONNX (public) | [`danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks-ONNX`](https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks-ONNX) (r2) |
 | Archive (private) | `wasabi:hf-llms/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks/<YYYY-MM-DD>_<sha7>/` (latest HF revision, `SHA256SUMS` + `MODEL.json`, verified 2026-10-22; ONNX export not kept, it rebuilds). The per-run r2/r3 copies in `small-models` were retired with that bucket on 2026-10-22, and the Modal run weights deleted the same day |
-| Modal volume `ai-training` | Weights and checkpoints deleted after the archive and Hub checks; small files kept |
+| Modal volume `ai-training` | Weights and checkpoints deleted after the archive and Hub checks (r2/r3 2026-10-22; all seven r5 runs' `model/` 2026-10-24, so the unpublished r5 arms exist only as `metrics.json`/predictions); small files kept |
 | Exact split for r2 | dataset `danielrosehill/ASR-Paragraph-Breaks`, `training/r2/{train,test}.jsonl` |
 
 The model card charts are built by `scripts/model_card.py runs/<published> runs/<other>...` into `hub/`.
@@ -196,8 +198,11 @@ Status 2026-10-24: Hebrish apps 1.001 ship without paragraphs; integration moved
 1. Daniel's call on the arm: full-context r5b-MiniLM-L12 int8 (F1 0.85, 32 MB) runs once per memo after
    transcription; the live variant (F1 0.81) only if breaks must appear while dictating. Live was trained on
    r5 data only, so retrain it on r5b (`LIVE=1 EPOCHS=5`, about 42 min, US$0.60) if it is wanted.
-2. Publish: `runs/asr-paragraph-r5b-minilm-l12/onnx/` to the Hub (model card from this section) and the CDN,
-   once Daniel approves. Not done.
+2. Publish: done on the Hub 2026-10-24 (Daniel), [`danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks): PyTorch at the root, `onnx/` with
+   `model_int8.onnx`, `model.onnx`, `vocab.txt`, `config.json`; card and `paragraphs.py` from `hub/minilm/`.
+   `paragraphs.py` reproduces `pred_ft.jsonl` exactly with `model.onnx` (26 of 26 outputs, 0 differing decisions,
+   max prob diff 5e-5) and gives the same 33 differing decisions as `onnx_check.json` with int8. The CDN copy the
+   apps download is not made yet: it belongs with the app port (path chosen there).
 3. App side: WordPiece tokenizer (lower-case, BERT basic tokenisation, `vocab.txt`), the windowing and
    "most central window" merge from `train_tokcls.py` (`windows`, `word_probs`), threshold from
    `config.json`, then join words with a space or a blank line. Port and test against

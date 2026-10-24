@@ -12,21 +12,18 @@ with an ONNX export; weights backed up in Wasabi (`hf-llms`, latest HF revision)
 from Claude Haiku 5.5, hand-reviewed where possible and otherwise labelled by rules derived from those
 reviews. Details: [`docs/training.md`](docs/training.md).
 
-**2026-10-24: encoder classifier (r5), not published.** For the Hebrish apps: a word-level break
+**2026-10-24: encoder classifier (r5b), published.** For the Hebrish apps: a word-level break
 classifier on MiniLM-L12 (33M, WordPiece) scores break F1 0.85 on the same 26 memos, cannot alter the
-text, and exports to a 32 MB int8 ONNX model (F1 0.85). Section "Encoder classifier (r5)" in
-[`docs/training.md`](docs/training.md).
-
-**2026-10-24: encoder classifier (r5), not published.** For the Hebrish apps: a word-level break
-classifier on MiniLM-L12 (33M, WordPiece) scores break F1 0.85 on the same 26 memos, cannot alter the
-text, and exports to a 32 MB int8 ONNX model (F1 0.85). Section "Encoder classifier (r5)" in
-[`docs/training.md`](docs/training.md).
+text, and exports to a 32 MB int8 ONNX model (F1 0.85). On the Hub as [`danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks)
+(PyTorch + `onnx/`, with a reference `paragraphs.py`); backed up in Wasabi `hf-classifiers`. Section
+"Encoder classifier (r5)" in [`docs/training.md`](docs/training.md).
 
 | | |
 |---|---|
 | Dataset | [`danielrosehill/ASR-Paragraph-Breaks`](https://huggingface.co/datasets/danielrosehill/ASR-Paragraph-Breaks) |
 | Annotation Space | [`danielrosehill/ASR-Paragraph-Annotator`](https://huggingface.co/spaces/danielrosehill/ASR-Paragraph-Annotator) |
-| Model | [`danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks), ONNX: [`…-ONNX`](https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks-ONNX) |
+| Model (encoder, r5b) | [`danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks), ONNX in `onnx/` |
+| Model (generative, r2) | [`danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks), ONNX: [`…-ONNX`](https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks-ONNX) |
 | Demo Space | [`danielrosehill/ASR-Paragraph-Breaks-Demo`](https://huggingface.co/spaces/danielrosehill/ASR-Paragraph-Breaks-Demo) (CPU; optional email key-line bolding step) |
 | Blog post (2026-10-21) | <https://blog.danielrosehill.com/posts/asr-paragraph-breaks-gemma-3-270m-85hckk/> |
 
@@ -54,6 +51,7 @@ against the input: if anything other than whitespace changed, fall back to the i
 | [`scripts/build_pool.py`](scripts/build_pool.py) | Builds `pool/pool.jsonl` from public HF sources; `--upload` pushes it. Sources and filters are in its docstring |
 | [`space/`](space/) | The Gradio annotation Space (deployed to HF as-is) |
 | [`demo/`](demo/) | The public demo Space (deployed to HF as-is); examples are 4 held-out golden `syn-2-*` memos, flattened. Measured 2026-10-21 on CPU basic: 22 s for a 208-word memo, 42 s with the bolding step on a 220-word one |
+| [`hub/minilm/`](hub/minilm/) | Hub card and `paragraphs.py` (ONNX reference inference) for the r5b encoder; uploaded as-is |
 | [`hf-dataset/README.md`](hf-dataset/README.md) | The dataset card, uploaded to the HF dataset repo |
 | [`docs/data-format.md`](docs/data-format.md) | Pool and annotation record schemas |
 | [`docs/paragraphing-style.md`](docs/paragraphing-style.md) | The paragraphing rules derived from the hand reviews, and how well code reproduces them |

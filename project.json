@@ -104,7 +104,10 @@
     "test_f1": 0.851,
     "onnx_int8_mb": 32.3,
     "onnx_int8_test_f1": 0.848,
-    "published": false,
-    "doc": "docs/training.md#encoder-classifier-r5-2026-10-24"
+    "published": true,
+    "doc": "docs/training.md#encoder-classifier-r5-2026-10-24",
+    "hub": "danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks",
+    "hub_revision": "3b277dd",
+    "archive": "wasabi:hf-classifiers/danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks/2026-10-24_3b277dd/"
   }
 }
