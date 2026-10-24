@@ -1,9 +1,10 @@
-"""Rules 1-3 of docs/paragraphing-style.md as code (v1.1): refine a proposal toward Daniel's paragraphing.
+"""Rules 1-3 of docs/paragraphing-style.md as code (v1.2): refine a proposal toward Daniel's paragraphing.
 
-  python3 scripts/style_rules.py score <annotations_dir>   # P/R/F1 vs gold annotations/*.jsonl
+  python3 scripts/style_rules.py score <annotations_dir> [--v1.1]   # P/R/F1 vs gold annotations/*.jsonl
 
-apply(proposed) only ever adds breaks at sentence boundaries, so the output differs from the input
-in whitespace only. Thresholds were fitted 2026-10-21 on 19 gold items (see the doc).
+apply(proposed) only ever adds breaks, at sentence boundaries or (v1.2, rules 1b/3c) after a greeting
+comma or before a signature name, so the output differs from the input in whitespace only. Thresholds
+were fitted 2026-10-21 on 19 gold items (see the doc); v1.2 was added 2026-10-24 (r5).
 """
 
 from __future__ import annotations
@@ -36,11 +37,32 @@ WRAP = re.compile(r"^(okay,? |anyway,? |right,? |so,? )*(that's (it|all|everythi
 WRAP_WINDOW = 3  # only the last three paragraphs are searched for a wrap-up line
 
 
-def apply(proposed: str, lead: int = LEAD_MAX_WORDS, close: int = CLOSE_MAX_WORDS) -> list[str]:
+# Rule 1b (v1.2): a greeting fused by a comma into a longer first sentence ("Hi John, just following up
+# on ...") is split after the comma. Not when the rest is a self-introduction ("Hi Priya, it's Daniel.",
+# "Hey Marcus, it's me, sorry ..."): Daniel kept those together in every review.
+GREET = re.compile(r"^((?:Hi|Hey|Hello|Dear|Morning|Good morning)(?: [A-Z][\w.'-]+){0,3},)\s+(\S.*)$", re.S)
+INTRO = re.compile(r"^(it's|it is|this is|i'm|i am|me\b|my name)", re.I)
+GREET_MIN_REST = 6  # words after the greeting comma, within the same sentence
+# Rule 3c (v1.2): a valediction and a name at the very end ("..., all the best, Daniel.", "Kind regards,
+# Priya Raman") put the name on its own line, as in Daniel's reviews ("Kind regards," / "Priya Raman").
+# "Thanks, Dana." addresses the listener and stays together, so thanks/thank you are not valedictions.
+SIGN = re.compile(r"(?<![\w'])((?:all the best|best wishes|best regards|kind regards|warm regards|regards|best|cheers|"
+                  r"talk soon|speak soon|take care|love),)\s+([A-Z][\w'-]+(?: [A-Z][\w'-]+){0,2}\.?)$", re.I)
+
+
+def apply(proposed: str, lead: int = LEAD_MAX_WORDS, close: int = CLOSE_MAX_WORDS, v12: bool = True) -> list[str]:
     out = _v1(proposed, lead, close)
     start = next((i for i in range(max(0, len(out) - WRAP_WINDOW), len(out)) if WRAP.match(out[i])), None)
     if start is not None:
         out = out[:start] + [x for p in out[start:] for x in sentences(p)]
+    if v12 and out:
+        first = sentences(out[0])
+        m = GREET.match(first[0]) if first else None
+        if m and not INTRO.match(m.group(2)) and len(m.group(2).split()) >= GREET_MIN_REST:
+            out = [m.group(1), out[0][len(m.group(1)):].strip()] + out[1:]
+        m = SIGN.search(out[-1])
+        if m and m.group(2)[0].isupper() and m.start(2) > 0 and out[-1][:m.start(2)].strip():
+            out = out[:-1] + [out[-1][:m.start(2)].strip(), m.group(2)]
     return out
 
 
@@ -73,7 +95,7 @@ def _offsets(paras: list[str]) -> set[int]:
     return out
 
 
-def score(ann_dir: str) -> None:
+def score(ann_dir: str, v12: bool = True) -> None:
     """Score against gold, starting from Haiku's own proposal (data/synthetic/), not the one the
     annotator saw: for items reviewed after v1 shipped, the saved `proposed` already has rules applied."""
     from pathlib import Path
@@ -85,7 +107,7 @@ def score(ann_dir: str) -> None:
     by_set: dict[str, list[int]] = {}
     for f in glob.glob(f"{ann_dir}/syn-*.jsonl"):
         r = json.loads(open(f).read())
-        pred, ref = _offsets(apply(haiku.get(r["id"], r["proposed"]))), _offsets(r["paragraphs"])
+        pred, ref = _offsets(apply(haiku.get(r["id"], r["proposed"]), v12=v12)), _offsets(r["paragraphs"])
         for key in (r["id"].rsplit("-", 1)[0], "all"):
             t = by_set.setdefault(key, [0, 0, 0])
             t[0] += len(pred & ref); t[1] += len(pred); t[2] += len(ref)
@@ -96,6 +118,6 @@ def score(ann_dir: str) -> None:
 
 if __name__ == "__main__":
     if sys.argv[1:2] == ["score"]:
-        score(sys.argv[2])
+        score(sys.argv[2], v12="--v1.1" not in sys.argv)
     else:
         sys.exit(__doc__)

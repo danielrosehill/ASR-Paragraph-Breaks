@@ -59,6 +59,17 @@ removed no rule-added break, and added 23 breaks in total. Scored from Haiku's o
 | v1 (rules 1–3) | 0.84 | 0.95 | |
 | v1.1 (+ rule 3b) | 0.85 | 0.96 | 0.91 |
 
+| v1.2 (+ rules 1b, 3c; 2026-10-24) | 0.86 | 0.96 | 0.91 |
+
+**v1.2 (2026-10-24, for r5):** rule 1b splits a greeting fused into a longer first sentence after its
+comma ("Hi John," / "just following up on ...") unless the rest is a self-introduction ("it's", "this is",
+"I'm", "me", "my name"), which Daniel kept together in every review ("Hi Priya, it's Daniel.", "Hey Marcus,
+it's me, sorry ..."). Rule 3c puts a trailing name after a valediction on its own line ("Kind regards," /
+"Priya Raman"); "thanks"/"thank you" are not valedictions, since "Thanks, Dana." addresses the listener and
+Daniel kept it together. On the 45 reviewed items v1.2 changes one (`syn-1-0352`, adds "Talk soon," /
+"Daniel", which matches Daniel's review) and contradicts none; it changes 62 of 829 synthetic proposals.
+`python3 scripts/style_rules.py score <dir> --v1.1` scores the old version.
+
 `syn-2` precision is 1.00, but these were reviewed with the v1 output on screen, so some of that is
 anchoring. What was still added: closing lines over the 10-word limit (fixed by 3b) and spoken
 enumerations ("One, …" / "Two, …"). An enumeration rule was tested and dropped: F1 unchanged, precision

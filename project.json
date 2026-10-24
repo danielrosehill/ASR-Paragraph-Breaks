@@ -3,7 +3,7 @@
   "name": "asr-paragraph-breaks",
   "title": "Add paragraph breaks to flat ASR text, changing nothing else",
   "created": "2026-10-21",
-  "updated": "2026-10-21",
+  "updated": "2026-10-24",
   "status": "released",
   "task": {
     "pipeline_tag": "text-generation",
@@ -48,8 +48,8 @@
   },
   "style_rules": {
     "doc": "docs/paragraphing-style.md",
-    "version": "1.1",
-    "f1_fitted_syn1": 0.85,
+    "version": "1.2",
+    "f1_fitted_syn1": 0.86,
     "f1_heldout_syn2": 0.96,
     "f1_all_45": 0.91,
     "llm_rules_f1_cv": 0.73
@@ -94,5 +94,17 @@
       "published": false
     }
   ],
-  "archive": "wasabi:hf-llms/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks/ (latest HF revision only; small-models retired 2026-10-22)"
+  "archive": "wasabi:hf-llms/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks/ (latest HF revision only; small-models retired 2026-10-22)",
+  "encoder_classifier": {
+    "run": "asr-paragraph-r5b-minilm-l12",
+    "base": "microsoft/MiniLM-L12-H384-uncased",
+    "date": "2026-10-24",
+    "test_precision": 0.857,
+    "test_recall": 0.845,
+    "test_f1": 0.851,
+    "onnx_int8_mb": 32.3,
+    "onnx_int8_test_f1": 0.848,
+    "published": false,
+    "doc": "docs/training.md#encoder-classifier-r5-2026-10-24"
+  }
 }

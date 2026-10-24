@@ -12,6 +12,16 @@ with an ONNX export; weights backed up in Wasabi (`hf-llms`, latest HF revision)
 from Claude Haiku 5.5, hand-reviewed where possible and otherwise labelled by rules derived from those
 reviews. Details: [`docs/training.md`](docs/training.md).
 
+**2026-10-24: encoder classifier (r5), not published.** For the Hebrish apps: a word-level break
+classifier on MiniLM-L12 (33M, WordPiece) scores break F1 0.85 on the same 26 memos, cannot alter the
+text, and exports to a 32 MB int8 ONNX model (F1 0.85). Section "Encoder classifier (r5)" in
+[`docs/training.md`](docs/training.md).
+
+**2026-10-24: encoder classifier (r5), not published.** For the Hebrish apps: a word-level break
+classifier on MiniLM-L12 (33M, WordPiece) scores break F1 0.85 on the same 26 memos, cannot alter the
+text, and exports to a 32 MB int8 ONNX model (F1 0.85). Section "Encoder classifier (r5)" in
+[`docs/training.md`](docs/training.md).
+
 | | |
 |---|---|
 | Dataset | [`danielrosehill/ASR-Paragraph-Breaks`](https://huggingface.co/datasets/danielrosehill/ASR-Paragraph-Breaks) |
