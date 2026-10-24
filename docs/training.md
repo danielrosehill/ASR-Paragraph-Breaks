@@ -155,6 +155,7 @@ about US$0.40; two live jobs, 71 min wall, about US$1.00. Total about US$1.40.
 | Copy | Location |
 |---|---|
 | Hub, r5b encoder (public) | [`danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks), revision `3b277dd` (PyTorch + `onnx/`) |
+| CDN, r5b int8 (public, what the apps download) | `https://cdn.hebrish.app/models/paragraph-breaks/r5b-minilm-l12/onnx-int8/`, manifest `models/paragraph-breaks/latest.json` (immutable version folder; manifest cached 5 min) |
 | Archive, r5b encoder (private) | `wasabi:hf-classifiers/danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks/2026-10-24_3b277dd/` (12 files incl. `onnx/`, the map has `backup_exports` because the apps ship the int8 file; `SHA256SUMS` + `MODEL.json`, verified 2026-10-24 by `hf_backup.py`) |
 | Hub, PyTorch (public) | [`danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks) (r2) |
 | Hub, ONNX (public) | [`danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks-ONNX`](https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks-ONNX) (r2) |
@@ -201,8 +202,10 @@ Status 2026-10-24: Hebrish apps 1.001 ship without paragraphs; integration moved
 2. Publish: done on the Hub 2026-10-24 (Daniel), [`danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks): PyTorch at the root, `onnx/` with
    `model_int8.onnx`, `model.onnx`, `vocab.txt`, `config.json`; card and `paragraphs.py` from `hub/minilm/`.
    `paragraphs.py` reproduces `pred_ft.jsonl` exactly with `model.onnx` (26 of 26 outputs, 0 differing decisions,
-   max prob diff 5e-5) and gives the same 33 differing decisions as `onnx_check.json` with int8. The CDN copy the
-   apps download is not made yet: it belongs with the app port (path chosen there).
+   max prob diff 5e-5) and gives the same 33 differing decisions as `onnx_check.json` with int8. CDN copy for the apps
+   (2026-10-24): `https://cdn.hebrish.app/models/paragraph-breaks/latest.json` → `r5b-minilm-l12/onnx-int8/`
+   (`model_int8.onnx`, `vocab.txt`, `config.json`; SHA-256 of the served bytes checked). App spec and parity
+   cases: Hebrish-App `shared/paragraphs.md`, `shared/paragraph-cases.json`.
 3. App side: WordPiece tokenizer (lower-case, BERT basic tokenisation, `vocab.txt`), the windowing and
    "most central window" merge from `train_tokcls.py` (`windows`, `word_probs`), threshold from
    `config.json`, then join words with a space or a blank line. Port and test against
