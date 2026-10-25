@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paragraph inference for ASR</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1f2328; --muted: #59636e; --line: #d1d9e0; --card: #f6f8fa;
+    --accent: #2563eb; --accent-bg: #e8f0fe; --dim: #8c959f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --line: #3d444d; --card: #161b22;
+      --accent: #6ea8fe; --accent-bg: #15233d; --dim: #6e7681;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+         font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 48px 24px 80px; }
+  h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 8px; }
+  h2 { font-size: 1.3rem; margin: 48px 0 12px; padding-top: 8px; border-top: 1px solid var(--line); }
+  h3 { font-size: 1.05rem; margin: 24px 0 6px; }
+  p, li { color: var(--fg); }
+  .lede { color: var(--muted); font-size: 1.1rem; margin: 0 0 16px; }
+  .tag { display: inline-block; font-size: .78rem; font-weight: 600; letter-spacing: .02em;
+         padding: 2px 10px; border-radius: 999px; background: var(--accent-bg); color: var(--accent); }
+  a { color: var(--accent); }
+  code { font: .88em ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--card);
+         padding: 1px 5px; border-radius: 4px; }
+  table { border-collapse: collapse; width: 100%; font-size: .93rem; margin: 12px 0; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .compare figure { margin: 0; }
+  .compare figcaption { font-size: .82rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+  .text { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px;
+          font-size: .86rem; line-height: 1.55; white-space: pre-wrap; max-height: 460px; overflow: auto; }
+  @media (max-width: 700px) { .compare { grid-template-columns: 1fr; } }
+  .diagram { margin: 16px 0 8px; overflow-x: auto; }
+  .diagram svg { width: 100%; min-width: 640px; height: auto; display: block; }
+  svg .box { fill: var(--card); stroke: var(--line); stroke-width: 1.5; }
+  svg .box.hi { fill: var(--accent-bg); stroke: var(--accent); stroke-width: 2; }
+  svg .box.ghost { fill: none; stroke: var(--dim); stroke-dasharray: 5 4; }
+  svg .t { fill: var(--fg); font: 600 13px system-ui, sans-serif; }
+  svg .s { fill: var(--muted); font: 11px system-ui, sans-serif; }
+  svg .lane { fill: var(--muted); font: 700 11px system-ui, sans-serif; letter-spacing: .06em; }
+  svg .arrow { stroke: var(--muted); stroke-width: 1.5; fill: none; marker-end: url(#ah); }
+  svg .ah { fill: var(--muted); }
+  ul.art { padding-left: 20px; }
+  ul.art li { margin: 6px 0; }
+  .kind { font-size: .75rem; color: var(--muted); }
+  footer { margin-top: 56px; font-size: .85rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+
+<span class="tag">Prototype · experimental</span>
+<h1>Paragraph inference for ASR</h1>
+<p class="lede">Small models that do one thing to speech-to-text output: decide where the paragraphs go,
+and change nothing else.</p>
+
+<h2>The task</h2>
+<p>Modern speech recognition already handles punctuation and capitalisation well, and sentence boundary
+detection is a widely adopted, well-understood step. What most engines still return is one unbroken
+block of text. For a two-minute voice note that block is hard to read, and the fix is not more
+punctuation: it is paragraphs.</p>
+<p><strong>Paragraph inference</strong> takes flat, punctuated text and inserts paragraph breaks.
+It is meant to be deterministic in the sense that matters for a pipeline: the words, punctuation and
+casing that go in are exactly the words that come out. Only whitespace changes.</p>
+
+<div class="compare">
+  <figure>
+    <figcaption>Input: Parakeet-style ASR output (one block)</figcaption>
+    <div class="text">Hi Mr. Delgado, this is Priya Raman in unit 4B. Calling about the lease renewal, and I'll keep this short. Need to confirm one thing before I sign. I've been taking evening classes in Portuguese since March. Three nights a week, Lisbon Language Hub on Calder Street. Reason I'm bringing it up: my work schedule is changing. Starting June 3rd I'll be working from home two days a week, and I'll be doing a lot of calls with a team in São Paulo. So I'll be on the apartment's Wi-Fi during business hours more than before. Is that okay under the lease? Clause 14 says no running a business from the unit. I don't think this counts, it's just employment. But I'd rather ask than guess. Also, the study thing. I'll need a quiet corner for flashcards and recordings, mostly weeknights, after nine. Nothing loud. No parties, no music. Just saying so in case you hear me reciting verb conjugations through the wall. Which, honestly, you probably will. Two questions. One, does the renewal stay at the current rate? Two, can I get a copy of the updated building rules before the 15th? I want to read them properly. Call me back at 555-0148 or email. Thanks. Priya</div>
+  </figure>
+  <figure>
+    <figcaption>Output: MiniLM-L12 paragraph model (actual output)</figcaption>
+    <div class="text">Hi Mr. Delgado, this is Priya Raman in unit 4B.
+
+Calling about the lease renewal, and I'll keep this short. Need to confirm one thing before I sign.
+
+I've been taking evening classes in Portuguese since March. Three nights a week, Lisbon Language Hub on Calder Street.
+
+Reason I'm bringing it up: my work schedule is changing. Starting June 3rd I'll be working from home two days a week, and I'll be doing a lot of calls with a team in São Paulo. So I'll be on the apartment's Wi-Fi during business hours more than before. Is that okay under the lease? Clause 14 says no running a business from the unit. I don't think this counts, it's just employment. But I'd rather ask than guess.
+
+Also, the study thing.
+
+I'll need a quiet corner for flashcards and recordings, mostly weeknights, after nine. Nothing loud. No parties, no music. Just saying so in case you hear me reciting verb conjugations through the wall. Which, honestly, you probably will.
+
+Two questions.
+
+One, does the renewal stay at the current rate? Two, can I get a copy of the updated building rules before the 15th? I want to read them properly.
+
+Call me back at 555-0148 or email.
+
+Thanks.
+
+Priya</div>
+  </figure>
+</div>
+
+<h2>Why a dedicated model?</h2>
+<p>ASR post-processing models are already very good. Superwhisper's
+<a href="https://huggingface.co/superwhisper/s1-mini">S1 Mini</a>, for example, is a 0.6B normaliser that
+removes fillers, resolves self-corrections, punctuates and writes numbers and dates in written form.
+A general LLM cleanup pass can do all of that and paragraphing too.</p>
+<p>The idea here is narrower: a <strong>very small module that does only paragraph inference</strong>,
+so that it can be</p>
+<ul>
+  <li><strong>dropped into an ASR pipeline</strong> as its own step, before a deterministic or LLM
+    post-processing stage, or as the last step;</li>
+  <li><strong>tested and tuned in isolation</strong>, with its own metric (break-position precision and
+    recall) instead of being one behaviour buried inside a larger rewrite;</li>
+  <li><strong>safe by construction</strong>: it cannot drop, add or reword anything, so the step after
+    it (or the reader) gets exactly what the ASR model heard.</li>
+</ul>
+<p>This is a prototype. The models are trained on synthetic English voice memos in one person's
+paragraphing style, and they are published to test the idea, not as finished components.</p>
+
+<h2>Where it fits: intended pipelines</h2>
+<div class="diagram">
+<svg viewBox="0 0 900 400" role="img" aria-labelledby="dgt dgd">
+  <title id="dgt">Intended usage patterns</title>
+  <desc id="dgd">Pattern A: audio to Parakeet ASR to the paragraph model to readable text. Pattern B:
+    audio to Parakeet to the paragraph model to a generic cleanup step that does not paragraph, to final
+    text. For contrast: audio to ASR to one all-in-one post-processor that does everything.</desc>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="ah" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+
+  <!-- Pattern A -->
+  <text class="lane" x="0" y="22">A · ASR + PARAGRAPHS</text>
+  <rect class="box" x="0" y="36" width="110" height="64" rx="8"/>
+  <text class="t" x="55" y="64" text-anchor="middle">Audio</text>
+  <text class="s" x="55" y="82" text-anchor="middle">voice note</text>
+  <path class="arrow" d="M112,68 H150"/>
+  <rect class="box" x="152" y="36" width="190" height="64" rx="8"/>
+  <text class="t" x="247" y="60" text-anchor="middle">Parakeet (ASR)</text>
+  <text class="s" x="247" y="77" text-anchor="middle">punctuated, cased</text>
+  <text class="s" x="247" y="91" text-anchor="middle">no newline token: one block</text>
+  <path class="arrow" d="M344,68 H382"/>
+  <rect class="box hi" x="384" y="36" width="200" height="64" rx="8"/>
+  <text class="t" x="484" y="60" text-anchor="middle">Paragraph model</text>
+  <text class="s" x="484" y="77" text-anchor="middle">inserts breaks only</text>
+  <text class="s" x="484" y="91" text-anchor="middle">words unchanged</text>
+  <path class="arrow" d="M586,68 H624"/>
+  <rect class="box" x="626" y="36" width="160" height="64" rx="8"/>
+  <text class="t" x="706" y="64" text-anchor="middle">Readable text</text>
+  <text class="s" x="706" y="82" text-anchor="middle">verbatim, paragraphed</text>
+
+  <!-- Pattern B -->
+  <text class="lane" x="0" y="152">B · ASR + PARAGRAPHS + CLEANUP</text>
+  <rect class="box" x="0" y="166" width="110" height="64" rx="8"/>
+  <text class="t" x="55" y="194" text-anchor="middle">Audio</text>
+  <text class="s" x="55" y="212" text-anchor="middle">voice note</text>
+  <path class="arrow" d="M112,198 H150"/>
+  <rect class="box" x="152" y="166" width="150" height="64" rx="8"/>
+  <text class="t" x="227" y="194" text-anchor="middle">Parakeet (ASR)</text>
+  <text class="s" x="227" y="212" text-anchor="middle">one block</text>
+  <path class="arrow" d="M304,198 H340"/>
+  <rect class="box hi" x="342" y="166" width="170" height="64" rx="8"/>
+  <text class="t" x="427" y="194" text-anchor="middle">Paragraph model</text>
+  <text class="s" x="427" y="212" text-anchor="middle">structure only</text>
+  <path class="arrow" d="M514,198 H550"/>
+  <rect class="box" x="552" y="166" width="190" height="64" rx="8"/>
+  <text class="t" x="647" y="190" text-anchor="middle">Generic cleanup</text>
+  <text class="s" x="647" y="207" text-anchor="middle">rules or LLM: fillers, numbers</text>
+  <text class="s" x="647" y="221" text-anchor="middle">keeps the breaks it is given</text>
+  <path class="arrow" d="M744,198 H780"/>
+  <rect class="box" x="782" y="166" width="118" height="64" rx="8"/>
+  <text class="t" x="841" y="194" text-anchor="middle">Final text</text>
+  <text class="s" x="841" y="212" text-anchor="middle">clean, paragraphed</text>
+
+  <!-- Contrast -->
+  <text class="lane" x="0" y="292">FOR CONTRAST · ONE POST-PROCESSOR DOES EVERYTHING</text>
+  <rect class="box ghost" x="0" y="306" width="110" height="64" rx="8"/>
+  <text class="t" x="55" y="342" text-anchor="middle">Audio</text>
+  <path class="arrow" d="M112,338 H150"/>
+  <rect class="box ghost" x="152" y="306" width="150" height="64" rx="8"/>
+  <text class="t" x="227" y="342" text-anchor="middle">ASR</text>
+  <path class="arrow" d="M304,338 H340"/>
+  <rect class="box ghost" x="342" y="306" width="400" height="64" rx="8"/>
+  <text class="t" x="542" y="330" text-anchor="middle">All-in-one post-processor (S1 Mini, an LLM prompt)</text>
+  <text class="s" x="542" y="348" text-anchor="middle">cleanup, formatting and any paragraphing in one rewrite:</text>
+  <text class="s" x="542" y="362" text-anchor="middle">capable, but paragraphing can't be measured or tuned on its own</text>
+  <path class="arrow" d="M744,338 H780"/>
+  <rect class="box ghost" x="782" y="306" width="118" height="64" rx="8"/>
+  <text class="t" x="841" y="342" text-anchor="middle">Final text</text>
+</svg>
+</div>
+<p><strong>A</strong> is the minimal deployment: Parakeet does not emit a newline token, so its output
+is always one block, and the paragraph model is the only step after it. The transcript stays verbatim.</p>
+<p><strong>B</strong> adds a generic cleanup step afterwards that tidies the text (fillers, numbers,
+formatting) without doing its own paragraph inference, so each stage owns one job and can be swapped
+or evaluated separately.</p>
+
+<h2>The models</h2>
+<p>Three repos, two models. All score break-position precision and recall on the same 26 held-out,
+hand-reviewed synthetic memos (290 breaks).</p>
+<table>
+  <thead><tr><th>Model</th><th>Type</th><th>Size</th><th>F1</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td><a href="https://huggingface.co/danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks">MiniLM-L12-ASR-Paragraph-Breaks</a></td>
+        <td>Token classifier</td><td>33M · 32&nbsp;MB int8 ONNX</td><td>0.85</td>
+        <td>Recommended. Labels each word as a paragraph start or not, so it <em>cannot</em> change the
+        text. ~0.65&nbsp;s for a 340-word memo on a laptop CPU.</td></tr>
+    <tr><td><a href="https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks">Gemma-3-270M-ASR-Paragraph-Breaks</a></td>
+        <td>Generative</td><td>270M</td><td>0.78</td>
+        <td>First attempt. Retypes the text, so every output is checked and falls back to the input if
+        anything but whitespace changed (2 of 26).</td></tr>
+    <tr><td><a href="https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks-ONNX">Gemma-3-270M-ASR-Paragraph-Breaks-ONNX</a></td>
+        <td>ONNX export</td><td>1.66&nbsp;GB fp32 · 417&nbsp;MB int8</td><td>–</td>
+        <td>ONNX Runtime build of the Gemma model; the int8 quant is experimental.</td></tr>
+  </tbody>
+</table>
+<p>Baseline for comparison: SaT <code>segment-any-text/sat-3l-sm</code> in paragraph mode scores F1 0.65
+(precision 0.48, recall 1.00) on the same set.</p>
+<p>Data: <a href="https://huggingface.co/datasets/danielrosehill/ASR-Paragraph-Breaks">danielrosehill/ASR-Paragraph-Breaks</a> ·
+Try it: <a href="https://huggingface.co/spaces/danielrosehill/ASR-Paragraph-Breaks-Demo">demo Space</a> ·
+Code: <a href="https://github.com/danielrosehill/ASR-Paragraph-Breaks">GitHub</a> ·
+Write-up: <a href="https://blog.danielrosehill.com/posts/asr-paragraph-breaks-gemma-3-270m-85hckk/">blog post</a></p>
+
+<h2>Prior art and related work</h2>
+<p>Paragraph segmentation of speech isn't a new idea. This is a short, non-exhaustive map of what's
+already out there, collected 2026-10-25.</p>
+
+<h3>Closest to this project</h3>
+<ul class="art">
+  <li><a href="https://arxiv.org/abs/2512.24517">Paragraph Segmentation Revisited: Towards a Standard Task for Structuring Speech</a>
+    <span class="kind">· paper · Retkowski &amp; Waibel, LREC 2026</span><br>
+    Makes the same case: ASR transcripts arrive as unstructured streams, and paragraphing is the missing step.
+    Introduces the TEDPara and YTSegPara benchmarks, constrained decoding so LLMs insert breaks without
+    altering the transcript, and a compact model (MiniSeg).</li>
+  <li><a href="https://github.com/segment-any-text/wtpsplit">Segment Any Text (SaT) / wtpsplit</a>
+    <span class="kind">· models + library · 2024</span><br>
+    Multilingual sentence segmentation models that predict newline probability, with
+    <code>do_paragraph_segmentation=True</code> for paragraphs. The baseline used above
+    (<a href="https://huggingface.co/segment-any-text/sat-3l-sm">sat-3l-sm</a>).
+    Papers: <a href="https://arxiv.org/abs/2305.18893">WtP</a> (2023),
+    <a href="https://arxiv.org/abs/2406.16678">SaT</a> (2024).</li>
+  <li><a href="https://huggingface.co/superwhisper/s1-mini">superwhisper/s1-mini</a>
+    <span class="kind">· model · 2026</span><br>
+    A 0.6B ASR normaliser (fillers, self-corrections, punctuation, inverse text normalisation). It isn't
+    built for paragraph inference. Its card mentions blank lines only for a greeting, body and sign-off
+    in email context.</li>
+</ul>
+
+<h3>ASR API features</h3>
+<ul class="art">
+  <li><a href="https://developers.deepgram.com/docs/paragraphs">Deepgram <code>paragraphs=true</code></a>
+    <span class="kind">· API feature</span>: paragraphs from punctuation, speaker changes (with
+    diarization) and channel changes.</li>
+  <li><a href="https://www.assemblyai.com/docs/api-reference/transcripts/get-paragraphs">AssemblyAI paragraphs endpoint</a>
+    <span class="kind">· API feature</span>: returns a finished transcript split into paragraphs.</li>
+</ul>
+
+<h3>Text and topic segmentation</h3>
+<ul class="art">
+  <li><a href="https://arxiv.org/abs/2004.14535">Text Segmentation by Cross Segment Attention</a>
+    <span class="kind">· paper · Lukasik et al., EMNLP 2020</span>: Cross-segment BERT.</li>
+  <li><a href="https://arxiv.org/abs/1803.09337">Text Segmentation as a Supervised Learning Task</a>
+    <span class="kind">· paper · Koshorek et al., 2018</span>: introduces the
+    <a href="https://huggingface.co/datasets/saeedabc/wiki727k">Wiki-727K</a> dataset.</li>
+  <li><a href="https://arxiv.org/abs/2107.09278">Self-Adaptive Sliding Window for Spoken Document Segmentation</a>
+    <span class="kind">· paper · 2021</span>: segmentation aimed at spoken documents and ASR output.</li>
+  <li><a href="https://huggingface.co/dennlinger/bert-wiki-paragraphs">dennlinger/bert-wiki-paragraphs</a>
+    <span class="kind">· model · 2021</span>: BERT that decides whether adjacent paragraphs belong together
+    (<a href="https://arxiv.org/abs/2012.03619">paper</a>,
+    <a href="https://huggingface.co/datasets/dennlinger/wiki-paragraphs">dataset</a>).</li>
+  <li><a href="https://aclanthology.org/W04-3210/">Automatic Paragraph Identification</a>
+    <span class="kind">· paper · Sporleder &amp; Lapata, 2004</span>: early work on paragraph boundaries
+    across languages and domains.</li>
+  <li><a href="https://www.nltk.org/api/nltk.tokenize.texttiling.html">TextTiling</a> (Hearst, 1997) and
+    <a href="https://aclanthology.org/A00-2004/">C99</a> (Choi, 2000)
+    <span class="kind">· classical</span>: unsupervised topic-shift detection from lexical cohesion.</li>
+</ul>
+
+<h3>Adjacent step</h3>
+<ul class="art">
+  <li><a href="https://huggingface.co/oliverguhr/fullstop-punctuation-multilang-large">oliverguhr/fullstop-punctuation-multilang-large</a>
+    <span class="kind">· model</span>: punctuation restoration for unpunctuated ASR. This is the step
+    before paragraphing, for engines that don't punctuate.</li>
+</ul>
+
+<footer>Prototype, English only, trained on synthetic memos. Updated 2026-10-25.</footer>
+</main>
+</body>
+</html>

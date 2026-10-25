@@ -27,6 +27,7 @@ text, and exports to a 32 MB int8 ONNX model (F1 0.85). On the Hub as [`danielro
 | Model (encoder, r5b) | [`danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks), ONNX in `onnx/` |
 | Model (generative, r2) | [`danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks), ONNX: [`…-ONNX`](https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks-ONNX) |
 | Demo Space | [`danielrosehill/ASR-Paragraph-Breaks-Demo`](https://huggingface.co/spaces/danielrosehill/ASR-Paragraph-Breaks-Demo) (CPU; optional email key-line bolding step) |
+| Explainer Space | [`danielrosehill/Paragraph-Inference-For-ASR`](https://huggingface.co/spaces/danielrosehill/Paragraph-Inference-For-ASR) (static, 2026-10-25): the task, why a dedicated model, pipeline diagram, prior art |
 | Blog post (2026-10-21) | <https://blog.danielrosehill.com/posts/asr-paragraph-breaks-gemma-3-270m-85hckk/> |
 
 ## Why model-proposed, hand-reviewed pairs
@@ -53,6 +54,7 @@ against the input: if anything other than whitespace changed, fall back to the i
 | [`scripts/build_pool.py`](scripts/build_pool.py) | Builds `pool/pool.jsonl` from public HF sources; `--upload` pushes it. Sources and filters are in its docstring |
 | [`space/`](space/) | The Gradio annotation Space (deployed to HF as-is) |
 | [`demo/`](demo/) | The public demo Space (deployed to HF as-is); examples are 4 held-out golden `syn-2-*` memos, flattened. Measured 2026-10-21 on CPU basic: 22 s for a 208-word memo, 42 s with the bolding step on a 220-word one |
+| [`explainer/`](explainer/) | The static explainer Space (deployed to HF as-is with `HfApi().upload_folder`). Space `emoji` must be a pictographic emoji: `¶` is rejected by `validate-yaml` (400). The example output is real MiniLM r5b output on demo memo `syn-2-0000`; prior art verified 2026-10-25 |
 | [`hub/minilm/`](hub/minilm/) | Hub card and `paragraphs.py` (ONNX reference inference) for the r5b encoder; uploaded as-is |
 | [`scripts/normalise_annotations.py`](scripts/normalise_annotations.py) | Brings every annotation file on the Hub to the documented schema (dry run by default, `--upload` commits). Run it if the viewer reports a `CastError` on `annotations` |
 | [`hf-dataset/README.md`](hf-dataset/README.md) | The dataset card, uploaded to the HF dataset repo |
