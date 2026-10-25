@@ -54,6 +54,7 @@ against the input: if anything other than whitespace changed, fall back to the i
 | [`space/`](space/) | The Gradio annotation Space (deployed to HF as-is) |
 | [`demo/`](demo/) | The public demo Space (deployed to HF as-is); examples are 4 held-out golden `syn-2-*` memos, flattened. Measured 2026-10-21 on CPU basic: 22 s for a 208-word memo, 42 s with the bolding step on a 220-word one |
 | [`hub/minilm/`](hub/minilm/) | Hub card and `paragraphs.py` (ONNX reference inference) for the r5b encoder; uploaded as-is |
+| [`scripts/normalise_annotations.py`](scripts/normalise_annotations.py) | Brings every annotation file on the Hub to the documented schema (dry run by default, `--upload` commits). Run it if the viewer reports a `CastError` on `annotations` |
 | [`hf-dataset/README.md`](hf-dataset/README.md) | The dataset card, uploaded to the HF dataset repo |
 | [`docs/data-format.md`](docs/data-format.md) | Pool and annotation record schemas |
 | [`docs/paragraphing-style.md`](docs/paragraphing-style.md) | The paragraphing rules derived from the hand reviews, and how well code reproduces them |

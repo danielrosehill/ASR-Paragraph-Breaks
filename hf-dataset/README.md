@@ -13,6 +13,75 @@ tags:
 pretty_name: ASR Paragraph Breaks
 size_categories:
   - n<1K
+# Features are declared so a file missing an optional field loads as null instead of breaking the
+# viewer (CastError, 2026-10-25). Keep in step with docs/data-format.md and space/app.py.
+dataset_info:
+  - config_name: annotations
+    features:
+      - name: id
+        dtype: string
+      - name: source
+        dtype: string
+      - name: source_id
+        dtype: string
+      - name: text
+        dtype: string
+      - name: paragraphed
+        dtype: string
+      - name: proposed
+        dtype: string
+      - name: proposal_model
+        dtype: string
+      - name: proposal_method
+        dtype: string
+      - name: edited
+        dtype: bool
+      - name: paragraphs
+        sequence: string
+      - name: break_offsets
+        sequence: int64
+      - name: n_paragraphs
+        dtype: int64
+      - name: words
+        dtype: int64
+      - name: annotator
+        dtype: string
+      - name: annotated_at
+        dtype: string
+  - config_name: pool
+    features:
+      - name: id
+        dtype: string
+      - name: source
+        dtype: string
+      - name: source_id
+        dtype: string
+      - name: chunk
+        dtype: string
+      - name: text
+        dtype: string
+      - name: words
+        dtype: int64
+      - name: proposed
+        dtype: string
+      - name: haiku_proposed
+        dtype: string
+      - name: proposal_model
+        dtype: string
+      - name: proposal_method
+        dtype: string
+      - name: audience
+        dtype: string
+      - name: style
+        dtype: string
+      # class_label, not int64: the viewer's histogram fails on an int column holding only 0/1
+      # (StatisticsComputationError, 2026-10-25). Stored values are still the ints 0 and 1.
+      - name: priority
+        dtype:
+          class_label:
+            names:
+              '0': normal
+              '1': golden
 configs:
   - config_name: annotations
     default: true

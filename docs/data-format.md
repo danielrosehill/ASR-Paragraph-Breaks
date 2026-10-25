@@ -38,6 +38,18 @@ Written by the Space (`space/app.py`), one file per item, so concurrent saves ne
 | `annotator` | string | HF username that saved it |
 | `annotated_at` | string | UTC ISO 8601 timestamp |
 
+Every file carries every field above, null where it doesn't apply. Files saved before the Space wrote
+nulls left fields out, which broke the dataset viewer with a `CastError`. On 2026-10-25,
+`scripts/normalise_annotations.py` added them to 20 files: `mwp-ep5466-c1` (no proposal, so all four
+proposal fields are null) and the 19 `syn-1-*` items. Those were reviewed against Haiku's raw breaks
+before `style_rules.py` existed (their `proposed` equals the pool's `haiku_proposed`), so their
+`proposal_method` is `haiku-5.5`. Items annotated later carry `haiku-5.5 + style_rules v1` or `v1.1`.
+
+The card (`hf-dataset/README.md`) declares both configs' features under `dataset_info`, so a file that
+drifts loads with nulls instead of failing. Change it together with this page and `space/app.py`.
+In the card, `pool.priority` is a `class_label` (`0` normal, `1` golden), not `int64`, to work around a
+viewer statistics bug on 0/1 int columns. The JSONL still stores plain ints.
+
 Invariant, enforced at save time: `paragraphed` with all whitespace removed equals `text` with all
 whitespace removed. Only paragraph breaks are learned; words and punctuation are never edited.
 
