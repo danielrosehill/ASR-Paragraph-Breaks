@@ -9,7 +9,7 @@ Built by `scripts/build_pool.py`. One JSON object per line:
 | Field | Type | Meaning |
 |---|---|---|
 | `id` | string | Stable id, `<source>-<source_id>[-c<n>]`. Rebuilding the pool keeps ids, so saved annotations stay attached |
-| `source` | string | Source key: `syn`, `mwp`, `svn` or `nvn` (listed in the `scripts/build_pool.py` docstring) |
+| `source` | string | Source key: `syn`, `mwp`, `svn` or `nvn` (listed in the `scripts/build_pool.py` docstring); the private pool adds `hist` (`scripts/build_private_pool.py`) |
 | `source_id` | string | Row id or index in the upstream dataset |
 | `chunk` | string | `i/n` when a long transcript was split on sentence boundaries |
 | `text` | string | Flat text: punctuated, cased, every run of whitespace collapsed to one space, no line breaks |
@@ -18,6 +18,7 @@ Built by `scripts/build_pool.py`. One JSON object per line:
 | `haiku_proposed` | string, `syn` only | Haiku's paragraphing before the style rules |
 | `proposal_model`, `proposal_method` | string, `syn` only | e.g. `claude-haiku-5-5`, `haiku-5.5 + style_rules v1` |
 | `audience`, `style` | string, `syn` only | Generation spec: `self` or `other`, and the speaking-style instruction |
+| `kind` | string, private pool only | The generation kind, or `own dictation, obfuscated` for `hist` |
 | `priority` | int, `syn` only | The Space serves the highest first: 1 for the style-varied golden set (`syn-2-*`), 0 otherwise |
 
 ## `annotations/<id>.jsonl`: one hand annotation

@@ -24,6 +24,7 @@ text, and exports to a 32 MB int8 ONNX model (F1 0.85). On the Hub as [`danielro
 |---|---|
 | Dataset | [`danielrosehill/ASR-Paragraph-Breaks`](https://huggingface.co/datasets/danielrosehill/ASR-Paragraph-Breaks) |
 | Annotation Space | [`danielrosehill/ASR-Paragraph-Annotator`](https://huggingface.co/spaces/danielrosehill/ASR-Paragraph-Annotator) |
+| Private pool and Space (2026-10-29) | Dataset `danielrosehill/ASR-Paragraph-Breaks-Private`, Space `danielrosehill/ASR-Paragraph-Annotator-Private` (both private): 345 items, see "Private pool" below |
 | Model (encoder, r5b) | [`danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/MiniLM-L12-ASR-Paragraph-Breaks), ONNX in `onnx/` |
 | Model (generative, r2) | [`danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks`](https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks), ONNX: [`…-ONNX`](https://huggingface.co/danielrosehill/Gemma-3-270M-ASR-Paragraph-Breaks-ONNX) |
 | Demo Space | [`danielrosehill/ASR-Paragraph-Breaks-Demo`](https://huggingface.co/spaces/danielrosehill/ASR-Paragraph-Breaks-Demo) (CPU; optional email key-line bolding step) |
@@ -52,6 +53,8 @@ against the input: if anything other than whitespace changed, fall back to the i
 |---|---|
 | [`scripts/generate_synthetic.py`](scripts/generate_synthetic.py) | Haiku 5.5 batch generation of paragraphed memos (`submit`, then `collect`); prompt, scenario grid and key lookup are in the file |
 | [`scripts/build_pool.py`](scripts/build_pool.py) | Builds `pool/pool.jsonl` from public HF sources; `--upload` pushes it. Sources and filters are in its docstring |
+| [`scripts/obfuscate_history.py`](scripts/obfuscate_history.py) | Daniel's Hebrish desktop history (`history.db`) rewritten by Haiku with names and details changed, already paragraphed, into `data/private/` |
+| [`scripts/build_private_pool.py`](scripts/build_private_pool.py) | Builds and uploads the private pool from `data/private/` |
 | [`space/`](space/) | The Gradio annotation Space (deployed to HF as-is) |
 | [`demo/`](demo/) | The public demo Space (deployed to HF as-is); examples are 4 held-out golden `syn-2-*` memos, flattened. Measured 2026-10-21 on CPU basic: 22 s for a 208-word memo, 42 s with the bolding step on a 220-word one |
 | [`explainer/`](explainer/) | The static explainer Space (deployed to HF as-is with `HfApi().upload_folder`). Space `emoji` must be a pictographic emoji: `¶` is rejected by `validate-yaml` (400). The example output is real MiniLM r5b output on demo memo `syn-2-0000`; prior art verified 2026-10-25 |
@@ -66,10 +69,35 @@ against the input: if anything other than whitespace changed, fall back to the i
 | [`training/`](training/) | `train.py` (Modal) and the built train/test splits |
 | [`project.json`](project.json) | Machine-readable project state |
 
+## Private pool
+
+Built 2026-10-29 for annotating Daniel's own register, which the public synthetic memos don't cover,
+and the email openings and sign-offs where Haiku's breaks differ from his ("Dear Hannah, this is
+Daniel here", "great to meet you today", where the valediction goes). 345 items, all opening as
+Haiku proposals (plus `style_rules.py`) to review, served in random order across kinds:
+
+| Source | Items | Made by |
+|---|---|---|
+| `hist-1-*` | 199 | `obfuscate_history.py --n 200`: every 150+ word dictation, then 100-149 word ones, rewritten with names, places, products and numbers changed and the register kept (one dropped for length drift). One-paragraph proposals are kept: a take that needs no break is a valid answer |
+| `syn-4-*` | 49 | `generate_synthetic.py run --n 50 --seed 4 --private`: memos, all kinds |
+| `syn-5-*` | 97 | `generate_synthetic.py run --n 100 --seed 5 --kinds email-framing --private`: emails, each with one of `EMAIL_OPENINGS` and one of `EMAIL_CLOSINGS` |
+
+Everything lives in `data/private/` (gitignored; this repo is public). The Space is the public
+`space/` code with `DATASET_REPO` set to the private dataset and an `HF_TOKEN` secret so it can read
+the private pool; saves still go through the signed-in user's OAuth token. No external dataset of
+cleaned email drafts was found on the Hub on 2026-10-29 (searches for draft, clean-up and email
+writing sets), so the emails are Haiku's.
+
+```bash
+with-secrets uv run scripts/obfuscate_history.py --n 200 --seed 1 [--show-originals]
+with-secrets uv run scripts/generate_synthetic.py run --n 100 --seed 5 --kinds email-framing --private
+with-secrets uv run scripts/build_private_pool.py --upload
+```
+
 ## Deploying
 
 ```bash
-export HF_TOKEN="$HUGGINGFACE_TOKEN"
+# HF_TOKEN and ANTHROPIC_API_KEY come from Infisical: prefix commands with `with-secrets`
 uv run scripts/build_pool.py --upload                    # rebuild and push the pool
 hf upload danielrosehill/ASR-Paragraph-Breaks hf-dataset/README.md README.md --repo-type dataset
 hf upload danielrosehill/ASR-Paragraph-Annotator space . --repo-type space

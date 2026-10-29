@@ -8,6 +8,12 @@
   uv run scripts/generate_synthetic.py collect [--seed 1]            # waits, writes data/synthetic/synthetic-<seed>.jsonl
   uv run scripts/generate_synthetic.py run --n 30 --seed 2           # small sets: direct calls, same output file
   uv run scripts/generate_synthetic.py run --n 300 --seed 3 --kinds email   # dictated emails only (EMAIL_KINDS)
+  uv run scripts/generate_synthetic.py run --n 100 --seed 5 --kinds email-framing --private
+      # emails with a set opening and sign-off (EMAIL_OPENINGS, EMAIL_CLOSINGS), into data/private/
+
+`--private` writes to data/private/ instead of data/synthetic/: those items feed the private pool
+(scripts/build_private_pool.py), not the public one. Seeds 4 (50 memos) and 5 (100 framed emails),
+2026-10-29, are private.
 
 Seed 1 (2026-10-21, 500 items) used STYLES only. Later seeds also draw from STYLES_VARIED, added after
 the first reviews asked for more variation in style. Every spec records its `audience`
@@ -18,9 +24,8 @@ by joining the paragraphs, so the pair satisfies the only-whitespace-differs inv
 build_pool.py then adds these items as source `syn` with a `proposed` field, and the Space shows the
 proposal for review instead of flat text.
 
-API key: $ANTHROPIC_API_KEY if it works; the exported one on this machine is dead (2026-10-15), so the
-script falls back to the 1Password item "Anthropic / Claude Experiments API Key" (vault
-"API Keys & Programmatic", field password) via `op item get`.
+API key: $ANTHROPIC_API_KEY, from Infisical: run as `with-secrets uv run scripts/generate_synthetic.py ...`
+(until 2026-10-29 the script fell back to reading 1Password with `op`).
 """
 
 from __future__ import annotations
@@ -29,7 +34,6 @@ import json
 import os
 import random
 import re
-import subprocess
 import sys
 import time
 from pathlib import Path
@@ -40,6 +44,7 @@ from anthropic.types.messages.batch_create_params import Request
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = ROOT / "data" / "synthetic"
+PRIVATE_DIR = ROOT / "data" / "private"
 MODEL = "claude-haiku-5-5"
 
 KINDS = [
@@ -80,6 +85,30 @@ EMAIL_KINDS = [
     "a dictated email to a freelancer with a brief",
     "a dictated email to an event organiser or venue",
 ]
+# Seed 5 (2026-10-29): openings and sign-offs, the places where Daniel's breaks differ most from a
+# prompted model's ("Dear Hannah, this is Daniel here", "great to meet you today", the valediction).
+EMAIL_OPENINGS = [
+    "Open with the greeting and the speaker introducing themselves in one breath, e.g. 'Dear {to}, this is {me} here, ...'.",
+    "Open with 'Hi {to},' followed straight away by 'great to meet you today' or similar, then the point.",
+    "Open with 'Hello {to},' and a one-sentence pleasantry before the point.",
+    "Open with just the recipient's name and a comma, then go straight into the point.",
+    "Open with 'Hey {to},' and a short apology for the slow reply.",
+    "Open with 'Good morning {to},' and a reminder of who the speaker is and how they met.",
+    "Open with 'Dear Sir or Madam,' then explain who the speaker is and why they are writing.",
+    "Open with 'Hi team,' or 'Hi all,' and say what the email is about in the first sentence.",
+]
+EMAIL_CLOSINGS = [
+    "End with 'Thanks, {me}.' as one short sentence.",
+    "End with 'Best regards, {me}.'",
+    "End with a closing line like 'Let me know if you have any questions.' and then 'Thanks again, {me}.'",
+    "End with 'Speak soon, {me}.'",
+    "End with 'Kind regards,' then the speaker's full name and a phone number read out.",
+    "End with 'Cheers, {me}.' and then a short P.S. with one extra detail.",
+    "End with 'Looking forward to hearing from you. All the best, {me}.'",
+    "End without a sign-off name: the last sentence is a thank-you.",
+]
+NAMES_TO = ["Hannah", "David", "Sarah", "Yossi", "Rachel", "Michael", "Noa", "Tom", "Esther", "Avi", "Laura", "Ben"]
+NAMES_ME = ["Daniel", "Daniel", "Daniel", "Jonathan", "Miriam", "Eli", "Claire"]
 TOPICS = [
     "moving apartment", "a home network and server setup", "a child's sleep schedule", "a tax filing deadline",
     "a broken washing machine", "learning a new language", "a job application", "a car service",
@@ -127,20 +156,12 @@ Output only the transcript. Separate paragraphs with one blank line. No title, n
 
 def api_key() -> str:
     key = os.environ.get("ANTHROPIC_API_KEY", "")
-    if key:
-        try:
-            anthropic.Anthropic(api_key=key).models.retrieve(MODEL)
-            return key
-        except anthropic.AuthenticationError:
-            pass
-    return subprocess.run(
-        ["op", "item", "get", "Anthropic / Claude Experiments API Key", "--vault", "API Keys & Programmatic",
-         "--fields", "password", "--reveal"],
-        check=True, capture_output=True, text=True,
-    ).stdout.strip()
+    if not key:
+        sys.exit("ANTHROPIC_API_KEY is not set: run under `with-secrets` (Infisical).")
+    return key
 
 
-def specs(n: int, seed: int, kinds: list[str] | None = None) -> list[dict]:
+def specs(n: int, seed: int, kinds: list[str] | None = None, framing: bool = False) -> list[dict]:
     rng = random.Random(seed)
     styles = STYLES if seed == 1 else STYLES + STYLES_VARIED
     kinds = kinds or KINDS
@@ -148,8 +169,13 @@ def specs(n: int, seed: int, kinds: list[str] | None = None) -> list[dict]:
     for i in range(n):
         lo, hi = rng.choice(LENGTHS)
         kind = rng.choice(kinds)
-        out.append({"id": f"syn-{seed}-{i:04d}", "kind": kind, "topic": rng.choice(TOPICS),
-                    "words": [lo, hi], "style": rng.choice(styles), "audience": audience(kind)})
+        s = {"id": f"syn-{seed}-{i:04d}", "kind": kind, "topic": rng.choice(TOPICS),
+             "words": [lo, hi], "style": rng.choice(styles), "audience": audience(kind)}
+        if framing:
+            names = {"to": rng.choice(NAMES_TO), "me": rng.choice(NAMES_ME)}
+            s["words"] = rng.choice([[80, 150], [150, 250], [250, 400]])
+            s["frame"] = f"{rng.choice(EMAIL_OPENINGS)} {rng.choice(EMAIL_CLOSINGS)}".format(**names)
+        out.append(s)
     return out
 
 
@@ -160,7 +186,8 @@ def params(s: dict) -> dict:
 
 def prompt(s: dict) -> str:
     return (f"Write {s['kind']}, about {s['topic']}. Length: {s['words'][0]} to {s['words'][1]} words. "
-            f"Speaker style: {s['style']} Invent concrete names, dates and details.")
+            f"Speaker style: {s['style']} Invent concrete names, dates and details."
+            + (f" {s['frame']}" if s.get("frame") else ""))
 
 
 def submit(n: int, seed: int) -> None:
@@ -188,19 +215,20 @@ def collect(seed: int) -> None:
     write(seed, meta["specs"], results)
 
 
-def run(n: int, seed: int, kinds: list[str] | None = None) -> None:
+def run(n: int, seed: int, kinds: list[str] | None = None, framing: bool = False, out_dir: Path = OUT_DIR) -> None:
     """Direct (non-batch) calls in parallel: for small sets where waiting on a batch isn't worth it."""
     from concurrent.futures import ThreadPoolExecutor
     client = anthropic.Anthropic(api_key=api_key())
-    ss = specs(n, seed, kinds)
+    ss = specs(n, seed, kinds, framing)
     with ThreadPoolExecutor(8) as ex:
         msgs = list(ex.map(lambda s: client.messages.create(**params(s)), ss))
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    (OUT_DIR / f"batch-{seed}.json").write_text(json.dumps({"batch_id": None, "model": MODEL, "seed": seed, "specs": ss}, indent=1))
-    write(seed, ss, [(s["id"], m) for s, m in zip(ss, msgs)])
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / f"batch-{seed}.json").write_text(json.dumps({"batch_id": None, "model": MODEL, "seed": seed, "specs": ss}, indent=1))
+    write(seed, ss, [(s["id"], m) for s, m in zip(ss, msgs)], out_dir)
 
 
-def write(seed: int, ss: list[dict], results: list) -> None:
+def write(seed: int, ss: list[dict], results: list, out_dir: Path = OUT_DIR, name: str = "synthetic",
+          min_paragraphs: int = 2) -> None:
     by_id = {s["id"]: s for s in ss}
     rows, rejected, usage = [], {}, [0, 0]
     for custom_id, msg in results:
@@ -213,7 +241,7 @@ def write(seed: int, ss: list[dict], results: list) -> None:
         paras = [re.sub(r"\s+", " ", p).strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
         reason = ("max_tokens" if msg.stop_reason == "max_tokens" else
                   "markdown" if BAD.search(text) or "**" in text else
-                  "one_paragraph" if len(paras) < 2 else None)
+                  "one_paragraph" if len(paras) < min_paragraphs else None)
         if reason:
             rejected[reason] = rejected.get(reason, 0) + 1
             continue
@@ -221,7 +249,7 @@ def write(seed: int, ss: list[dict], results: list) -> None:
         rows.append({"id": custom_id, "spec": s, "proposed": "\n\n".join(paras), "text": " ".join(paras),
                      "n_paragraphs": len(paras), "words": len(" ".join(paras).split()), "model": MODEL})
     rows.sort(key=lambda x: x["id"])
-    out = OUT_DIR / f"synthetic-{seed}.jsonl"
+    out = out_dir / f"{name}-{seed}.jsonl"
     out.write_text("".join(json.dumps(x, ensure_ascii=False) + "\n" for x in rows))
     print(f"{len(rows)} kept, rejected {rejected}, usage in={usage[0]} out={usage[1]} -> {out.relative_to(ROOT)}")
 
@@ -234,6 +262,10 @@ if __name__ == "__main__":
     elif cmd == "collect":
         collect(int(args.get("--seed", 1)))
     elif cmd == "run":
-        run(int(args.get("--n", 30)), int(args.get("--seed", 2)), EMAIL_KINDS if args.get("--kinds") == "email" else None)
+        private = "--private" in sys.argv
+        args = dict(zip([a for a in sys.argv[2:] if a != "--private"][::2], [a for a in sys.argv[2:] if a != "--private"][1::2]))
+        k = args.get("--kinds")
+        run(int(args.get("--n", 30)), int(args.get("--seed", 2)), EMAIL_KINDS if k in ("email", "email-framing") else None,
+            framing=k == "email-framing", out_dir=PRIVATE_DIR if private else OUT_DIR)
     else:
         sys.exit(__doc__)
